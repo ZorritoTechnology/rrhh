@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Personal Desplazado a Otros Penales - Control INPE{% endblock %}
+{% block header_title %}Reporte Maestro de Personal Desplazado a Otros Establecimientos{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+    <!-- BARRA SUPERIOR DE CONTROL -->
+    <div class="table-container" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--secondary); letter-spacing: 0.5px; text-transform: uppercase;">
+                    <i class="fa-solid fa-building-shield"></i> OFICINA REGIONAL NOR ORIENTE (700) | EE.PP. 722 - MUJERES IQUITOS
+                </div>
+                <h3 style="font-size: 1.35rem; font-weight: 800; margin-top: 0.25rem;">Servidores Desplazados, Rotados y Trasladados</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+                    Registro y seguimiento de personal con salidas o ingresos a otros establecimientos penitenciarios (EP Chachapoyas, EP Moyobamba, EP Virgen de Fátima, EP Iquitos, etc.)
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <span class="badge badge-error" style="font-size: 0.9rem; padding: 0.4rem 0.8rem; font-weight: 700;">
+                    Total Desplazamientos: {{ total }}
+                </span>
+                <a href="/vacaciones/historial" style="background: rgba(255,255,255,0.08); color: #fff; text-decoration: none; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 1.25rem; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-umbrella-beach"></i> Kardex Vacaciones
+                </a>
+                <button onclick="window.print()" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-print"></i> Imprimir Reporte
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA DE DESPLAZADOS -->
+    <div class="table-container">
+        <div class="table-header">
+            <div>
+                <h3 style="font-size: 1.15rem; font-weight: 700;">Detalle Oficial de Desplazamientos Registrados</h3>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Resoluciones de destaque, traslados por necesidad de servicio e inicios de PADI</p>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto; margin-top: 1rem;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Código</th>
+                        <th>DNI</th>
+                        <th>Servidor Desplazado</th>
+                        <th>Área</th>
+                        <th>Cargo / Función</th>
+                        <th>Fecha de Salida</th>
+                        <th>Reporte del Mes</th>
+                        <th>Penal Destino / Motivo / Resolución</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in desplazados %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace; font-weight: 700;">{{ d.codigo_servidor }}</td>
+                        <td style="font-family: monospace;">{{ d.dni or '-' }}</td>
+                        <td style="font-weight: 700; color: #fff;">{{ d.apellidos_nombres }}</td>
+                        <td><span class="badge badge-neutral">{{ d.area }}</span></td>
+                        <td>{{ d.cargo_funcion }}</td>
+                        <td style="font-weight: 700; color: #fff;">{{ d.fecha_desplazamiento }}</td>
+                        <td>
+                            <a href="/asistencia/llenado-2026?mes={{ d.mes }}&tab=desplazamientos" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+                                Mes {{ d.mes }}/{{ d.anio }}
+                            </a>
+                        </td>
+                        <td style="font-size: 0.85rem;">
+                            {% if 'CHACHAPOYAS' in d.observaciones.upper() %}
+                            <span class="badge badge-warning">EP. CHACHAPOYAS</span>
+                            {% elif 'MOYOBAMBA' in d.observaciones.upper() %}
+                            <span class="badge badge-error">EP. MOYOBAMBA</span>
+                            {% elif 'FATIMA' in d.observaciones.upper() or 'FÁTIMA' in d.observaciones.upper() %}
+                            <span class="badge badge-success">EP. VIRGEN DE FÁTIMA</span>
+                            {% elif 'PADI' in d.observaciones.upper() %}
+                            <span class="badge badge-error">INICIO DE PADI</span>
+                            {% else %}
+                            <span class="badge badge-neutral">OTRA SEDE</span>
+                            {% endif %}
+                            <div style="color: var(--text-muted); font-size: 0.78rem; margin-top: 0.25rem;">
+                                {{ d.observaciones }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            No se registran servidores desplazados a la fecha.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

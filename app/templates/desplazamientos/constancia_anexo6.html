@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Anexo N° 06 - Constancia por Desplazamiento | INPE</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 20px;
+            color: #000;
+        }
+        .sheet {
+            background: #fff;
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+        }
+        .header h4 {
+            margin: 0;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        .header h3 {
+            margin: 6px 0;
+            font-size: 15px;
+            text-transform: uppercase;
+        }
+        .header h2 {
+            margin: 8px 0;
+            font-size: 18px;
+            font-weight: bold;
+            background: #f8fafc;
+            padding: 6px;
+            border: 1px solid #000;
+        }
+        .body-text {
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+        .highlight {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .info-grid {
+            margin: 15px 0;
+            border: 1px solid #000;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+        }
+        .info-grid th {
+            background: #f1f5f9;
+            border: 1px solid #000;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .info-grid td {
+            border: 1px solid #000;
+            padding: 6px 10px;
+        }
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            border-left: 3px solid #000;
+            padding-left: 8px;
+        }
+        .signatures {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            font-size: 12px;
+        }
+        .sig-box {
+            width: 30%;
+            border-top: 1px solid #000;
+            padding-top: 6px;
+        }
+        .print-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .sheet { border: none; box-shadow: none; padding: 20px 30px; }
+            .print-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div style="text-align: center;">
+        <button class="print-btn" onclick="window.print()">🖨️ Imprimir Formato Oficial (Anexo 06 - REG-006-URH)</button>
+    </div>
+
+    <div class="sheet">
+        <div class="header">
+            <h4>INSTITUTO NACIONAL PENITENCIARIO</h4>
+            <h4>OFICINA GENERAL DE ADMINISTRACIÓN &bull; UNIDAD DE RECURSOS HUMANOS</h4>
+            <div style="font-weight: bold; margin-top: 8px;">ANEXO N° 06 &bull; REG-006-URH</div>
+            <div style="font-size: 11px; margin-top: 2px;">(Directiva DI-003-2023-INPE-OGA)</div>
+            <h2>CONSTANCIA POR DESPLAZAMIENTO</h2>
+            <div style="font-size: 12px; margin-top: 4px;">N.° <strong>DESP-2026-{{ "%04d"|format(desp.id_desplazamiento) }}</strong></div>
+        </div>
+
+        <div class="body-text">
+            <p>
+                El Especialista de Personal / Responsable de Recursos Humanos del Establecimiento Penitenciario que suscribe,
+                <strong>HACE CONSTAR:</strong>
+            </p>
+            <p>
+                Que, el/la servidor(a) penitenciario(a) <span class="highlight">{{ desp.apellidos_nombres }}</span>,
+                identificado(a) con CIP N° <span class="highlight">{{ desp.codigo_servidor }}</span> y DNI N° <span class="highlight">{{ desp.dni }}</span>,
+                desempeñando la función de <strong>{{ desp.cargo_funcion or 'Agente de Seguridad' }}</strong>
+                bajo la modalidad horaria <strong>{{ desp.horario_laboral or '24 x 48' }}</strong>:
+            </p>
+
+            <table class="info-grid">
+                <tr>
+                    <th style="width: 35%;">TIPO DE MOVIMIENTO:</th>
+                    <td style="font-weight: bold;">
+                        {% if desp.tipo_movimiento == 'ALTA_RECEPCION' %}
+                        ALTA (RECEPCIÓN DESDE OTRA SEDE PENITENCIARIA)
+                        {% else %}
+                        BAJA (TRASLADO / ROTACIÓN A OTRA SEDE PENITENCIARIA)
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>DEPENDENCIA DE ORIGEN:</th>
+                    <td>{{ desp.establecimiento_origen }}</td>
+                </tr>
+                <tr>
+                    <th>DEPENDENCIA DE DESTINO:</th>
+                    <td>{{ desp.establecimiento_destino }}</td>
+                </tr>
+                <tr>
+                    <th>DOCUMENTO QUE DISPONE EL DESPLAZAMIENTO:</th>
+                    <td><strong>{{ desp.documento_oficial }}</strong></td>
+                </tr>
+                <tr>
+                    <th>FECHA EFECTIVA DEL DESPLAZAMIENTO:</th>
+                    <td>{{ desp.fecha_desplazamiento }}</td>
+                </tr>
+                <tr>
+                    <th>FECHA DE PRESENTACIÓN EN LA SEDE:</th>
+                    <td>{{ desp.fecha_presentacion_eepp or desp.fecha_desplazamiento }}</td>
+                </tr>
+            </table>
+
+            <!-- CUADRO 1: RECORD VACACIONAL -->
+            <div class="section-title">1. Récord de Descanso Físico Vacacional (Liquidación / Transferencia)</div>
+            <table class="info-grid">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">Período / Ciclo Laboral</th>
+                        <th style="text-align: center;">Derecho Anual Asignado</th>
+                        <th style="text-align: center;">Días Efectivamente Gozados</th>
+                        <th style="text-align: center;">Saldo Vacacional Transferido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="text-align: center;">
+                        <td style="font-weight: bold;">{{ desp.vacaciones_periodo or '2025-2026' }}</td>
+                        <td>30 Días</td>
+                        <td><strong>{{ desp.vacaciones_gozadas_origen }} Días</strong></td>
+                        <td style="font-weight: bold; font-size: 13px; color: #15803d;">{{ desp.vacaciones_saldo_origen }} Días Pendientes</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- CUADRO 2: COMPENSACION DE JORNADA 24X48 -->
+            <div class="section-title">2. Récord de Compensación de Jornada 24x48 (Lineamiento LI-001-2023-INPE-OGA)</div>
+            <table class="info-grid">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">Año Fiscal</th>
+                        <th style="text-align: center;">Días Ganados en Sede Origen</th>
+                        <th style="text-align: center;">Días Compensados / Gozados</th>
+                        <th style="text-align: center;">Saldo de Compensación Transferido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="text-align: center;">
+                        <td style="font-weight: bold;">{{ desp.comp_anio_fiscal or '2026' }}</td>
+                        <td>{{ desp.comp_ganadas_origen }} Días (24 hrs)</td>
+                        <td><strong>{{ desp.comp_gozadas_origen }} Días</strong></td>
+                        <td style="font-weight: bold; font-size: 13px; color: #b45309;">{{ desp.comp_saldo_origen }} Días Disponibles</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- OBSERVACIONES -->
+            <div class="section-title">3. Observaciones y Notas Institucionales</div>
+            <p style="font-size: 12px; margin-top: 4px; color: #334155;">
+                {{ desp.observaciones or 'Se emite la presente constancia conforme al numeral 6.4 de la Directiva DI-003-2023-INPE-OGA para los fines pertinentes en el legajo personal del servidor y cómputo de asistencia en la dependencia de destino.' }}
+            </p>
+
+            <p style="text-align: right; margin-top: 30px;">
+                Iquitos, {{ desp.fecha_desplazamiento }}
+            </p>
+        </div>
+
+        <div class="signatures">
+            <div class="sig-box">
+                <br><br>
+                <strong>V°B° Especialista de Personal</strong><br>
+                Recursos Humanos
+            </div>
+            <div class="sig-box">
+                <br><br>
+                <strong>Conformidad del Jefe Inmediato</strong><br>
+                Jefatura de Seguridad / Administración
+            </div>
+            <div class="sig-box">
+                <br><br>
+                <strong>TRABAJADOR</strong><br>
+                CIP: {{ desp.codigo_servidor }}
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

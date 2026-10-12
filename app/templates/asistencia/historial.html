@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Cierres Mensuales{% endblock %}
+{% block header_title %}Historial de Reportes y Cierres Mensuales{% endblock %}
+
+{% block content %}
+<div class="table-container">
+    <div class="table-header">
+        <div>
+            <h3 style="font-size: 1.25rem; font-weight: 700;">Historial Consolidado de Reportes</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Trazabilidad de cierres mensuales registrados en la base de datos</p>
+        </div>
+        <span class="badge badge-neutral">Auditoría RRHH</span>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Año</th>
+                <th>Mes</th>
+                <th>Establecimiento</th>
+                <th>Responsable</th>
+                <th>Total Servidores</th>
+                <th>Observaciones</th>
+                <th style="text-align: center;">Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in historial %}
+            <tr>
+                <td style="font-family: monospace; color: var(--text-muted);">#{{ r.id_reporte }}</td>
+                <td style="font-weight: 700; color: #fff;">{{ r.anio }}</td>
+                <td><span class="badge badge-neutral">Mes {{ r.mes }}</span></td>
+                <td>{{ r.nombre_establecimiento or 'EP. Mujeres Iquitos (722)' }}</td>
+                <td style="color: #fff; font-weight: 500;">{{ r.responsable_nombre or 'DIRECTORA ZAPATA ROQUE' }}</td>
+                <td><span class="badge badge-success">{{ r.total_trabajadores }}</span></td>
+                <td style="color: var(--text-muted); font-size: 0.85rem;">{{ r.observaciones_generales }}</td>
+                <td style="text-align: center;">
+                    <a href="/asistencia/llenado-2026?mes={{ r.mes }}" class="btn-delete" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border-color: rgba(99, 102, 241, 0.4); text-decoration: none;">
+                        <i class="fa-solid fa-eye"></i> Ver Novedades
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

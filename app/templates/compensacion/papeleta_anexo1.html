@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Anexo N° 01 - Papeleta de Compensación de Días (24x48)</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 20px;
+            color: #000;
+        }
+        .sheet {
+            background: #fff;
+            max-width: 750px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+        }
+        .header h4 {
+            margin: 0;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        .header h3 {
+            margin: 6px 0;
+            font-size: 15px;
+            text-transform: uppercase;
+        }
+        .header h2 {
+            margin: 8px 0;
+            font-size: 18px;
+            font-weight: bold;
+            background: #f8fafc;
+            padding: 6px;
+            border: 1px solid #000;
+        }
+        .body-text {
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            text-align: justify;
+        }
+        .highlight {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .info-grid {
+            margin: 20px 0;
+            border: 1px solid #000;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 13px;
+        }
+        .info-grid td {
+            border: 1px solid #000;
+            padding: 8px 12px;
+        }
+        .signatures {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            font-size: 12px;
+        }
+        .sig-box {
+            width: 30%;
+            border-top: 1px solid #000;
+            padding-top: 6px;
+        }
+        .print-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .sheet { border: none; box-shadow: none; padding: 20px 30px; }
+            .print-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div style="text-align: center;">
+        <button class="print-btn" onclick="window.print()">🖨️ Imprimir Formato Oficial (Anexo 01)</button>
+    </div>
+
+    <div class="sheet">
+        <div class="header">
+            <h4>INSTITUTO NACIONAL PENITENCIARIO</h4>
+            <h4>OFICINA GENERAL DE ADMINISTRACIÓN &bull; UNIDAD DE RECURSOS HUMANOS</h4>
+            <div style="font-weight: bold; margin-top: 8px;">ANEXO N° 01 &bull; REG-010-URH</div>
+            <div style="font-size: 11px; margin-top: 2px;">(Actualización del Anexo N° 10 - Directiva DI-003-2023-INPE-OGA)</div>
+            <h2>FORMATO DE COMPENSACIÓN DE DÍAS (24X48)</h2>
+            <div style="font-size: 12px; margin-top: 4px;">N.° <strong>COMP-2026-{{ "%04d"|format(sol.id_solicitud) }}</strong></div>
+        </div>
+
+        <div class="body-text">
+            <p><strong>Estimado(a) Especialista de Personal:</strong></p>
+            <p>
+                Mediante el presente comunico a usted, que se ha autorizado al/la trabajador/a 
+                <span class="highlight">{{ sol.apellidos_nombres }}</span>, 
+                con CIP N° <span class="highlight">{{ sol.codigo_servidor }}</span> y DNI N° <span class="highlight">{{ sol.dni }}</span>, 
+                desempeñando la función de <strong>{{ sol.cargo_funcion or 'Agente de Seguridad' }}</strong> en el Área de Seguridad Penitenciaria, 
+                la <strong>compensación de 01 JORNADA LABORAL COMPLETA (24 HORAS)</strong> que será tomada el día:
+            </p>
+
+            <table class="info-grid">
+                <tr>
+                    <td style="background: #f1f5f9; width: 40%; font-weight: bold;">FECHA DE COMPENSACIÓN:</td>
+                    <td style="font-weight: bold; font-size: 15px; color: #1e3a8a;">{{ sol.fecha_compensacion }} (24 Horas)</td>
+                </tr>
+                <tr>
+                    <td style="background: #f1f5f9; font-weight: bold;">FECHA DE SOLICITUD / PRESENTACIÓN:</td>
+                    <td>{{ sol.fecha_solicitud }}</td>
+                </tr>
+                <tr>
+                    <td style="background: #f1f5f9; font-weight: bold;">ESTABLECIMIENTO PENITENCIARIO:</td>
+                    <td>EP. MUJERES IQUITOS (722) - ORNOSM (700)</td>
+                </tr>
+                <tr>
+                    <td style="background: #f1f5f9; font-weight: bold;">RESOLUCIÓN AUTORIZANTE:</td>
+                    <td>{{ sol.numero_resolucion or 'RD N° 146-2023-INPE/OGA (Lineamiento LI-001-2023)' }}</td>
+                </tr>
+                <tr>
+                    <td style="background: #f1f5f9; font-weight: bold;">OBSERVACIONES / DETALLE:</td>
+                    <td>{{ sol.observaciones or 'Sin observaciones adicionales. Conforme a las necesidades del servicio.' }}</td>
+                </tr>
+            </table>
+
+            <p style="margin-top: 15px;">
+                En tal sentido, agradeceré su registro y procesamiento en la planilla y control mensual de asistencia.
+            </p>
+            <p style="text-align: right; margin-top: 25px;">
+                Iquitos, {{ sol.fecha_solicitud }}
+            </p>
+        </div>
+
+        <div class="signatures">
+            <div class="sig-box">
+                <br><br>
+                <strong>V°B° Especialista de Personal</strong><br>
+                Recursos Humanos
+            </div>
+            <div class="sig-box">
+                <br><br>
+                <strong>Sello y Firma del Jefe Directo</strong><br>
+                Jefatura de Seguridad
+            </div>
+            <div class="sig-box">
+                <br><br>
+                <strong>TRABAJADOR</strong><br>
+                CIP: {{ sol.codigo_servidor }}
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

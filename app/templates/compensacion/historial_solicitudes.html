@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Solicitudes de Compensación | INPE{% endblock %}
+{% block header_title %}Historial Oficial de Solicitudes (Anexo 01 - Jornada 24x48){% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <a href="/compensacion" style="color: var(--text-muted); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-arrow-left"></i> Volver a Matriz Anexo 3
+            </a>
+            <h3 style="color: #fff; font-size: 1.3rem; font-weight: 700; margin: 0;">Registro Cronológico de Papeletas y Solicitudes</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0 0;">
+                Seguimiento de las solicitudes tramitadas para compensación de servicios 24 horas continuas.
+            </p>
+        </div>
+        <a href="/compensacion/solicitud" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; text-decoration: none; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+            <i class="fa-solid fa-plus"></i> Nueva Papeleta (Anexo 01)
+        </a>
+    </div>
+
+    <div class="glass-card" style="padding: 1.5rem;">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color); text-align: left;">
+                        <th style="padding: 0.75rem 0.5rem; width: 60px;">N°</th>
+                        <th style="padding: 0.75rem 0.75rem;">CIP</th>
+                        <th style="padding: 0.75rem 0.75rem;">SERVIDOR</th>
+                        <th style="padding: 0.75rem 0.75rem;">FECHA SOLICITUD</th>
+                        <th style="padding: 0.75rem 0.75rem; color: #60a5fa;">DÍA COMPENSADO (24H)</th>
+                        <th style="padding: 0.75rem 0.75rem; text-align: center;">DÍAS</th>
+                        <th style="padding: 0.75rem 0.75rem; text-align: center;">ESTADO</th>
+                        <th style="padding: 0.75rem 0.75rem;">OBSERVACIONES</th>
+                        <th style="padding: 0.75rem 0.75rem; text-align: center;">ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in solicitudes %}
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 0.75rem 0.5rem; color: var(--text-muted);">{{ loop.index }}</td>
+                        <td style="padding: 0.75rem 0.75rem; font-weight: 700; color: #60a5fa;">{{ s.codigo_servidor }}</td>
+                        <td style="padding: 0.75rem 0.75rem; font-weight: 600; color: #fff;">{{ s.apellidos_nombres }}</td>
+                        <td style="padding: 0.75rem 0.75rem; color: #cbd5e1;">{{ s.fecha_solicitud or '-' }}</td>
+                        <td style="padding: 0.75rem 0.75rem; font-weight: 700; color: #38bdf8;">{{ s.fecha_compensacion }}</td>
+                        <td style="padding: 0.75rem 0.75rem; text-align: center; font-weight: 700; color: #34d399;">{{ s.dias_compensados }} d (24h)</td>
+                        <td style="padding: 0.75rem 0.75rem; text-align: center;">
+                            <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 6px;">
+                                {{ s.estado }}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem 0.75rem; font-size: 0.8rem; color: var(--text-muted);">{{ s.observaciones or '-' }}</td>
+                        <td style="padding: 0.75rem 0.75rem; text-align: center;">
+                            <a href="/compensacion/papeleta/{{ s.id_solicitud }}" target="_blank" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); text-decoration: none; padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">
+                                <i class="fa-solid fa-print"></i> Papeleta
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1160 @@
+{% extends "base.html" %}
+
+{% block title %}Libro Oficial de Asistencia 2026 - Control INPE{% endblock %}
+{% block header_title %}Libro Mensual de Control de Asistencia y Novedades 2026{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilos del Cuaderno / Pestañas */
+    .tabs-nav {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px 10px 0 0;
+        color: var(--text-muted);
+        padding: 0.65rem 1rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+    .tab-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .tab-btn.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .tab-counter {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 999px;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .tab-content {
+        animation: fadeIn 0.25s ease;
+    }
+    .data-table-compact th, .data-table-compact td {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.8rem;
+    }
+</style>
+
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+    <!-- MENSAJES DE ESTADO -->
+    {% if mensaje %}
+    <div class="alert-toast alert-success">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.5rem;"></i>
+        <div>
+            <div style="font-weight: 700;">¡Operación Exitosa!</div>
+            <div style="font-size: 0.85rem;">{{ mensaje }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert-toast alert-error">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem;"></i>
+        <div>
+            <div style="font-weight: 700;">Error al procesar</div>
+            <div style="font-size: 0.85rem;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 1. SELECTOR DEL MES, ESTADO (ABIERTO/CERRADO) Y ACCIONES -->
+    <div class="table-container" style="padding: 1.25rem 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--secondary); letter-spacing: 0.5px; text-transform: uppercase;">
+                        <i class="fa-solid fa-building-shield"></i> OFICINA REGIONAL NOR ORIENTE (700) | EE.PP. 722 - MUJERES IQUITOS
+                    </div>
+                    {% if datos_mes.info.estado == 'CERRADO' %}
+                    <span class="badge badge-error" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; font-weight: 700;">
+                        <i class="fa-solid fa-lock"></i> MES CERRADO (OFICIAL)
+                    </span>
+                    {% else %}
+                    <span class="badge badge-success" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; font-weight: 700;">
+                        <i class="fa-solid fa-lock-open"></i> MES EN EDICIÓN (ABIERTO)
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h2 style="font-size: 1.35rem; font-weight: 800; margin-top: 0.25rem;">
+                    Libro Mensual: {% for m_id, m_nom in meses %}{% if m_id == mes_seleccionado %}{{ m_nom }}{% endif %}{% endfor %} 2026
+                </h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    Responsable: <strong>{{ datos_mes.info.responsable_nombre or 'ZAPATA ROQUE SANTOS DELCIA' }}</strong> | Plantilla activa: <strong style="color: #fff;">{{ counts.personal }} trabajadores</strong>
+                    {% if datos_mes.info.fecha_cierre %}| Fecha de Cierre: <strong>{{ datos_mes.info.fecha_cierre }}</strong>{% endif %}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                <!-- Selector de Mes -->
+                <form action="/asistencia/llenado-2026" method="GET" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="hidden" name="tab" value="{{ tab_activa }}">
+                    <select name="mes" class="search-input" style="padding: 0.5rem 1rem; width: auto; font-size: 0.85rem; cursor: pointer;">
+                        {% for m_id, m_nom in meses %}
+                        <option value="{{ m_id }}" {% if mes_seleccionado == m_id %}selected{% endif %} style="color: #000;">
+                            {{ m_nom }} 2026
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.55rem 1rem; font-weight: 600; cursor: pointer;">
+                        Cambiar Mes
+                    </button>
+                </form>
+
+                <!-- Traspasar / Clonar plantilla si el mes está abierto y vacío -->
+                {% if datos_mes.info.estado != 'CERRADO' and counts.personal == 0 and mes_seleccionado > 1 %}
+                <form action="/asistencia/clonar-mes-anterior" method="POST" style="margin: 0;">
+                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                    <button type="submit" style="background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 0.55rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-copy"></i> Importar Plantilla Mes Anterior
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- Acción Cerrar / Reabrir -->
+                {% if datos_mes.info.estado == 'CERRADO' %}
+                <form action="/asistencia/reabrir-mes" method="POST" onsubmit="return confirm('¿Desea reabrir este mes para habilitar modificaciones?');" style="margin: 0;">
+                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                    <button type="submit" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 0.55rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-unlock"></i> Reabrir Mes
+                    </button>
+                </form>
+                {% else %}
+                <form action="/asistencia/cerrar-mes" method="POST" onsubmit="return confirm('¿Confirmar cierre del mes? Una vez cerrado se validan todos los anexos oficiales.');" style="margin: 0;">
+                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                    <button type="submit" style="background: var(--secondary); color: #fff; border: none; border-radius: 8px; padding: 0.55rem 1.25rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-lock"></i> Cerrar Mes Oficial
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="/reportes/anexo/1?anio=2026&mes={{ mes_seleccionado }}" style="background: rgba(255,255,255,0.08); color: #fff; text-decoration: none; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 1rem; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-print"></i> Formato Imprimible
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. PESTAÑAS OFICIALES (12 HOJAS DEL LIBRO) -->
+    <div class="tabs-nav">
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=personal" class="tab-btn {% if tab_activa == 'personal' %}active{% endif %}">
+            <i class="fa-solid fa-users"></i> 1. Personal General <span class="tab-counter">{{ counts.personal }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=funcionarios" class="tab-btn {% if tab_activa == 'funcionarios' %}active{% endif %}">
+            <i class="fa-solid fa-user-tie"></i> 2. Funcionarios <span class="tab-counter">{{ counts.funcionarios }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=sanciones" class="tab-btn {% if tab_activa == 'sanciones' %}active{% endif %}">
+            <i class="fa-solid fa-gavel"></i> 3. Sanciones <span class="tab-counter">{{ counts.sanciones }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=renuncias" class="tab-btn {% if tab_activa == 'renuncias' %}active{% endif %}">
+            <i class="fa-solid fa-file-signature"></i> 4. Renuncias <span class="tab-counter">{{ counts.renuncias }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=reincorporaciones" class="tab-btn {% if tab_activa == 'reincorporaciones' %}active{% endif %}">
+            <i class="fa-solid fa-rotate-left"></i> 5. Reincorporaciones <span class="tab-counter">{{ counts.reincorporaciones }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=desplazamientos" class="tab-btn {% if tab_activa == 'desplazamientos' %}active{% endif %}">
+            <i class="fa-solid fa-route"></i> 6. Desplazamientos <span class="tab-counter">{{ counts.desplazamientos }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=licencias" class="tab-btn {% if tab_activa == 'licencias' %}active{% endif %}">
+            <i class="fa-solid fa-kit-medical"></i> 7. Licencias <span class="tab-counter">{{ counts.licencias }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=vacaciones" class="tab-btn {% if tab_activa == 'vacaciones' %}active{% endif %}">
+            <i class="fa-solid fa-umbrella-beach"></i> 8. Vacaciones <span class="tab-counter">{{ counts.vacaciones }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=tardanzas" class="tab-btn {% if tab_activa == 'tardanzas' %}active{% endif %}">
+            <i class="fa-solid fa-clock"></i> 9. Tardanzas <span class="tab-counter">{{ counts.tardanzas }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=permisos" class="tab-btn {% if tab_activa == 'permisos' %}active{% endif %}">
+            <i class="fa-solid fa-id-badge"></i> 10. Permisos P/P <span class="tab-counter">{{ counts.permisos }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=inasistencias" class="tab-btn {% if tab_activa == 'inasistencias' %}active{% endif %}">
+            <i class="fa-solid fa-triangle-exclamation"></i> 11. Inasistencias <span class="tab-counter">{{ counts.inasistencias }}</span>
+        </a>
+        <a href="/asistencia/llenado-2026?mes={{ mes_seleccionado }}&tab=no_registrados" class="tab-btn {% if tab_activa == 'no_registrados' %}active{% endif %}">
+            <i class="fa-solid fa-question"></i> 12. No Registrados <span class="tab-counter">{{ counts.no_registrados }}</span>
+        </a>
+    </div>
+
+    <!-- 3. CONTENIDOS POR PESTAÑA -->
+
+    <!-- TAB 1: PERSONAL GENERAL DEL MES -->
+    {% if tab_activa == 'personal' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 1: Reporte de Asistencia del Personal (Plantilla del Mes)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total servidores habilitados en el período: {{ counts.personal }}</p>
+                </div>
+                <button onclick="document.getElementById('modal-personal').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-user-plus"></i> Asignar Servidor al Mes
+                </button>
+            </div>
+
+            <div style="overflow-x: auto; margin-top: 1rem;">
+                <table class="data-table data-table-compact">
+                    <thead>
+                        <tr>
+                            <th>N°</th>
+                            <th>Código</th>
+                            <th>DNI</th>
+                            <th>Apellidos y Nombres</th>
+                            <th>Régimen</th>
+                            <th>Nivel</th>
+                            <th>Cargo Estructural</th>
+                            <th>Estado</th>
+                            <th>Área</th>
+                            <th>Horario</th>
+                            <th>Resolución</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in libro.personal %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td style="font-family: monospace; font-weight: 700;">{{ p.codigo_servidor }}</td>
+                            <td style="font-family: monospace;">{{ p.dni or '-' }}</td>
+                            <td style="font-weight: 600; color: #fff;">{{ p.apellidos_nombres }}</td>
+                            <td><span class="badge badge-neutral">{{ p.nombre_regimen or 'Ley N° 29709' }}</span></td>
+                            <td>{{ p.nivel or '-' }}</td>
+                            <td style="font-size: 0.75rem;">{{ p.cargo_estructural or '-' }}</td>
+                            <td>
+                                {% if p.estado_laboral == 'ACTIVO' %}
+                                <span class="badge badge-success">ACTIVO</span>
+                                {% else %}
+                                <span class="badge badge-error">{{ p.estado_laboral }}</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge badge-neutral">{{ p.area_clasificacion }}</span></td>
+                            <td style="font-size: 0.75rem;">{{ p.horario_laboral }}</td>
+                            <td style="font-size: 0.75rem; color: var(--text-muted);">{{ p.resolucion_documento }}</td>
+                            <td>
+                                <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Quitar a este servidor de la plantilla de este mes?');" style="margin: 0;">
+                                    <input type="hidden" name="tabla" value="asistencia_mensual_personal">
+                                    <input type="hidden" name="pk_col" value="id_asistencia">
+                                    <input type="hidden" name="id_valor" value="{{ p.id_asistencia }}">
+                                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                    <input type="hidden" name="tab" value="personal">
+                                    <button type="submit" class="btn-delete" title="Quitar del mes"><i class="fa-solid fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 2: FUNCIONARIOS -->
+    {% if tab_activa == 'funcionarios' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 2: Funcionarios y Directivos del Mes</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Directivos con niveles F-1 a F-6 (D.L. 276) o S3 a S5 (Ley 29709)</p>
+                </div>
+                <button onclick="document.getElementById('modal-funcionario').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-plus"></i> Registrar Funcionario
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Código</th>
+                        <th>Funcionario</th>
+                        <th>Cargo / Función</th>
+                        <th>Nivel</th>
+                        <th>Fecha Inicio</th>
+                        <th>Resolución</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in libro.funcionarios %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace; font-weight: 700;">{{ f.codigo_servidor }}</td>
+                        <td style="font-weight: 700; color: #fff;">{{ f.apellidos_nombres }}</td>
+                        <td><span class="badge badge-success">{{ f.cargo_funcion }}</span></td>
+                        <td><span class="badge badge-neutral">{{ f.nivel }}</span></td>
+                        <td>{{ f.fecha_inicio_funciones }}</td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ f.resolucion_documento }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Eliminar funcionario?');">
+                                <input type="hidden" name="tabla" value="reporte_funcionarios">
+                                <input type="hidden" name="pk_col" value="id_funcionario">
+                                <input type="hidden" name="id_valor" value="{{ f.id_funcionario }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="funcionarios">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran funcionarios en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 3: SANCIONES -->
+    {% if tab_activa == 'sanciones' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 3: Sanciones Disciplinarias del Mes</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Suspensión, Amonestación escrita, Cese temporal, Destitución</p>
+                </div>
+                <button onclick="document.getElementById('modal-sancion').style.display='block'" style="background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-plus"></i> Registrar Sanción
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Código</th>
+                        <th>Servidor</th>
+                        <th>Tipo de Sanción</th>
+                        <th>Período</th>
+                        <th>Días</th>
+                        <th>Tiempo que Resuelve</th>
+                        <th>Resolución</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in libro.sanciones %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace;">{{ s.codigo_servidor }}</td>
+                        <td style="font-weight: 600;">{{ s.apellidos_nombres }}</td>
+                        <td><span class="badge badge-error">{{ s.tipo_sancion }}</span></td>
+                        <td>{{ s.fecha_inicio }} al {{ s.fecha_termino }}</td>
+                        <td>{{ s.dias }} d</td>
+                        <td>{{ s.tiempo_que_resuelve }}</td>
+                        <td style="font-size: 0.8rem;">{{ s.resolucion_documento }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Eliminar sanción?');">
+                                <input type="hidden" name="tabla" value="reporte_sanciones">
+                                <input type="hidden" name="pk_col" value="id_sancion">
+                                <input type="hidden" name="id_valor" value="{{ s.id_sancion }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="sanciones">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran sanciones disciplinarias en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 4: RENUNCIAS -->
+    {% if tab_activa == 'renuncias' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 4: Renuncias y Ceses Voluntarios</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Recepción de cartas, último día laborado y motivos</p>
+                </div>
+                <button onclick="document.getElementById('modal-renuncia').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
+                    <i class="fa-solid fa-plus"></i> Registrar Renuncia
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead><tr><th>N°</th><th>Código</th><th>Servidor</th><th>A partir del</th><th>Carta / Recepción</th><th>Motivos</th><th>Último Día</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for r in libro.renuncias %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ r.codigo_servidor }}</td>
+                        <td>{{ r.apellidos_nombres }}</td>
+                        <td>{{ r.a_partir_del }}</td>
+                        <td>{{ r.carta_fecha }} / {{ r.fecha_recepcion }}</td>
+                        <td>{{ r.motivos }}</td>
+                        <td>{{ r.ultimo_dia_laborado }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST">
+                                <input type="hidden" name="tabla" value="reporte_renuncias">
+                                <input type="hidden" name="pk_col" value="id_renuncia">
+                                <input type="hidden" name="id_valor" value="{{ r.id_renuncia }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="renuncias">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran renuncias en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 5: REINCORPORACIONES -->
+    {% if tab_activa == 'reincorporaciones' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 5: Reincorporaciones del Personal</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Retorno tras culminación de sanción, licencia o mandato judicial</p>
+                </div>
+                <button onclick="document.getElementById('modal-reincorporacion').style.display='block'" style="background: var(--secondary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
+                    <i class="fa-solid fa-plus"></i> Registrar Reincorporación
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead><tr><th>N°</th><th>Código</th><th>Servidor</th><th>F. Inactividad</th><th>Motivo Inactividad</th><th>F. Reincorporación</th><th>Motivo Retorno</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for re in libro.reincorporaciones %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ re.codigo_servidor }}</td>
+                        <td>{{ re.apellidos_nombres }}</td>
+                        <td>{{ re.fecha_inicio_inactividad }}</td>
+                        <td>{{ re.motivo_inactividad }}</td>
+                        <td>{{ re.fecha_reincorporacion }}</td>
+                        <td>{{ re.motivo_reincorporacion }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST">
+                                <input type="hidden" name="tabla" value="reporte_reincorporaciones">
+                                <input type="hidden" name="pk_col" value="id_reincorporacion">
+                                <input type="hidden" name="id_valor" value="{{ re.id_reincorporacion }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="reincorporaciones">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran reincorporaciones en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 6: DESPLAZAMIENTOS -->
+    {% if tab_activa == 'desplazamientos' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 6: Desplazamientos y Rotaciones</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Traslados entre sedes penitenciarias o cambios de área interna</p>
+                </div>
+                <button onclick="document.getElementById('modal-desplazamiento').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
+                    <i class="fa-solid fa-plus"></i> Registrar Desplazamiento
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead><tr><th>N°</th><th>Código</th><th>Servidor</th><th>Área / Sede Destino</th><th>Cargo / Función</th><th>Fecha</th><th>Observaciones</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for d in libro.desplazamientos %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ d.codigo_servidor }}</td>
+                        <td>{{ d.apellidos_nombres }}</td>
+                        <td>{{ d.area }}</td>
+                        <td>{{ d.cargo_funcion }}</td>
+                        <td>{{ d.fecha_desplazamiento }}</td>
+                        <td>{{ d.observaciones }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST">
+                                <input type="hidden" name="tabla" value="reporte_desplazamientos">
+                                <input type="hidden" name="pk_col" value="id_desplazamiento">
+                                <input type="hidden" name="id_valor" value="{{ d.id_desplazamiento }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="desplazamientos">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran desplazamientos en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 7: LICENCIAS -->
+    {% if tab_activa == 'licencias' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 7: Licencias (Médicas, Onomásticos, Maternidad, Particulares)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total licencias otorgadas en el mes: {{ counts.licencias }}</p>
+                </div>
+                <button onclick="document.getElementById('modal-licencia').style.display='block'" style="background: var(--secondary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-plus"></i> Registrar Licencia
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Código</th>
+                        <th>Servidor</th>
+                        <th>Tipo de Licencia</th>
+                        <th>Entidad</th>
+                        <th>Inicio</th>
+                        <th>Término</th>
+                        <th>Días</th>
+                        <th>Observaciones</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in libro.licencias %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace;">{{ l.codigo_servidor }}</td>
+                        <td style="font-weight: 600;">{{ l.apellidos_nombres }}</td>
+                        <td>
+                            {% if l.tipo == 'MATERNIDAD' %}
+                            <span class="badge badge-success">MATERNIDAD</span>
+                            {% elif l.tipo == 'ONOMÁSTICO' or l.tipo == 'ONOMASTICO' %}
+                            <span class="badge badge-warning">ONOMÁSTICO</span>
+                            {% else %}
+                            <span class="badge badge-neutral">{{ l.tipo }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ l.entidad }}</td>
+                        <td>{{ l.fecha_inicio }}</td>
+                        <td>{{ l.fecha_termino }}</td>
+                        <td style="font-weight: 700; color: #fff;">{{ l.dias }} d</td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ l.observaciones or '-' }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Eliminar registro de licencia?');">
+                                <input type="hidden" name="tabla" value="reporte_licencias">
+                                <input type="hidden" name="pk_col" value="id_licencia">
+                                <input type="hidden" name="id_valor" value="{{ l.id_licencia }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="licencias">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran licencias en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 8: VACACIONES -->
+    {% if tab_activa == 'vacaciones' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 8: Vacaciones Gozadas y Fraccionadas</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total registros vacacionales en el mes: {{ counts.vacaciones }}</p>
+                </div>
+                <button onclick="document.getElementById('modal-vacacion').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-plus"></i> Registrar Vacaciones
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead><tr><th>N°</th><th>Código</th><th>Servidor</th><th>Período</th><th>Inicio</th><th>Término</th><th>Días</th><th>Observaciones</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for v in libro.vacaciones %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace;">{{ v.codigo_servidor }}</td>
+                        <td style="font-weight: 600;">{{ v.apellidos_nombres }}</td>
+                        <td><span class="badge badge-neutral">{{ v.periodo }}</span></td>
+                        <td>{{ v.fecha_inicio }}</td>
+                        <td>{{ v.fecha_termino }}</td>
+                        <td style="font-weight: 700; color: #fff;">{{ v.dias }} d</td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ v.observaciones or '-' }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST">
+                                <input type="hidden" name="tabla" value="reporte_vacaciones">
+                                <input type="hidden" name="pk_col" value="id_vacacion">
+                                <input type="hidden" name="id_valor" value="{{ v.id_vacacion }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="vacaciones">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran vacaciones en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 9: TARDANZAS -->
+    {% if tab_activa == 'tardanzas' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 9: Tardanzas del Mes (en Minutos)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total acumulado para descuento de planillas</p>
+                </div>
+                <button onclick="document.getElementById('modal-tardanza').style.display='block'" style="background: var(--warning); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
+                    <i class="fa-solid fa-plus"></i> Registrar Tardanza
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead><tr><th>N°</th><th>Código</th><th>Servidor</th><th>Minutos</th><th>Mes</th><th>Observaciones</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for t in libro.tardanzas %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ t.codigo_servidor }}</td>
+                        <td>{{ t.apellidos_nombres }}</td>
+                        <td style="font-weight: 700; color: var(--danger);">{{ t.minutos }} min</td>
+                        <td>{{ mes_seleccionado }}</td>
+                        <td>{{ t.observaciones or '-' }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST">
+                                <input type="hidden" name="tabla" value="reporte_tardanzas">
+                                <input type="hidden" name="pk_col" value="id_tardanza">
+                                <input type="hidden" name="id_valor" value="{{ t.id_tardanza }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="tardanzas">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran tardanzas en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 10: PERMISOS PARTICULARES -->
+    {% if tab_activa == 'permisos' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 10: Permisos Particulares (en Minutos)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Cómputo en minutos acumulados durante el mes</p>
+                </div>
+                <button onclick="document.getElementById('modal-permiso').style.display='block'" style="background: var(--warning); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
+                    <i class="fa-solid fa-plus"></i> Registrar Permiso P/P
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead><tr><th>N°</th><th>Código</th><th>Servidor</th><th>Minutos</th><th>Mes</th><th>Observaciones</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for pm in libro.permisos %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace;">{{ pm.codigo_servidor }}</td>
+                        <td style="font-weight: 600;">{{ pm.apellidos_nombres }}</td>
+                        <td style="font-weight: 700; color: #fff;">{{ pm.minutos }} min</td>
+                        <td>{{ mes_seleccionado }}</td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ pm.observaciones or '-' }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST">
+                                <input type="hidden" name="tabla" value="reporte_permisos">
+                                <input type="hidden" name="pk_col" value="id_permiso">
+                                <input type="hidden" name="id_valor" value="{{ pm.id_permiso }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="permisos">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran permisos particulares en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 11: INASISTENCIAS INJUSTIFICADAS -->
+    {% if tab_activa == 'inasistencias' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 11: Inasistencias Injustificadas</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Días no laborados y fechas exactas para aplicación de sanción</p>
+                </div>
+                <button onclick="document.getElementById('modal-inasistencia').style.display='block'" style="background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
+                    <i class="fa-solid fa-plus"></i> Registrar Inasistencia
+                </button>
+            </div>
+
+            <table class="data-table" style="margin-top: 1rem;">
+                <thead><tr><th>N°</th><th>Código</th><th>Servidor</th><th>Días</th><th>Fechas de Inasistencias</th><th>Mes</th><th>Observaciones</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for ina in libro.inasistencias %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace;">{{ ina.codigo_servidor }}</td>
+                        <td style="font-weight: 600;">{{ ina.apellidos_nombres }}</td>
+                        <td style="font-weight: 700; color: var(--danger);">{{ ina.dias }} d</td>
+                        <td><span class="badge badge-error">{{ ina.fechas_detalle or 'Días continuos' }}</span></td>
+                        <td>{{ mes_seleccionado }}</td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ ina.observaciones or '-' }}</td>
+                        <td>
+                            <form action="/asistencia/eliminar-registro" method="POST">
+                                <input type="hidden" name="tabla" value="reporte_inasistencias">
+                                <input type="hidden" name="pk_col" value="id_inasistencia">
+                                <input type="hidden" name="id_valor" value="{{ ina.id_inasistencia }}">
+                                <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                <input type="hidden" name="tab" value="inasistencias">
+                                <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se registran inasistencias en este mes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 12: NO REGISTRADOS -->
+    {% if tab_activa == 'no_registrados' %}
+    <div class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 12: Trabajadores No Registrados / Observados</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Trabajadores no habidos o destacados temporalmente sin código asignado</p>
+                </div>
+            </div>
+            <div style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
+                <i class="fa-solid fa-clipboard-check" style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 0.75rem;"></i>
+                <p>Todos los servidores del mes cuentan con código de servidor y registro regular en la plantilla oficial.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ================= MODALES DE REGISTRO INDEPENDIENTE ================= -->
+
+<!-- MODAL ASIGNAR PERSONAL AL MES -->
+<div id="modal-personal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 650px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Asignar Servidor a la Plantilla Mensual</h3>
+            <button onclick="document.getElementById('modal-personal').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-personal-mes" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for emp in empleados %}
+                    <option value="{{ emp.id_empleado }}" style="color: #000;">{{ emp.codigo_servidor }} - {{ emp.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Régimen</label>
+                    <select name="id_regimen" class="search-input">
+                        {% for reg in catalogos.regimenes %}
+                        <option value="{{ reg.id_regimen }}" style="color: #000;">{{ reg.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Nivel</label>
+                    <input type="text" name="nivel" value="T1" class="search-input">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Cargo / Función</label>
+                    <input type="text" name="cargo_funcion" value="AGENTE DE SEGURIDAD" class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Horario Laboral</label>
+                    <input type="text" name="horario_laboral" value="24 x 48" class="search-input">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-personal').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--primary); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL LICENCIAS -->
+<div id="modal-licencia" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 650px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Licencia Oficial</h3>
+            <button onclick="document.getElementById('modal-licencia').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-licencia" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor del Mes</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Tipo de Licencia</label>
+                    <select name="tipo" class="search-input">
+                        {% for lic in catalogos.licencias %}
+                        <option value="{{ lic.nombre }}" style="color: #000;">{{ lic.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Entidad Emisora</label>
+                    <select name="entidad" class="search-input">
+                        {% for ent in catalogos.entidades %}
+                        <option value="{{ ent }}" style="color: #000;">{{ ent }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Fecha Inicio</label>
+                    <input type="date" name="fecha_inicio" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Fecha Término</label>
+                    <input type="date" name="fecha_termino" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Días</label>
+                    <input type="number" name="dias" value="1" min="1" required class="search-input">
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones / CITT / Documento</label>
+                <input type="text" name="observaciones" placeholder="Ej: CITT Essalud, Certificado médico" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-licencia').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--secondary); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL SANCIONES -->
+<div id="modal-sancion" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 650px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Sanción Disciplinaria</h3>
+            <button onclick="document.getElementById('modal-sancion').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-sancion" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor del Mes</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Tipo de Sanción</label>
+                    <select name="tipo_sancion" class="search-input">
+                        {% for s in catalogos.sanciones %}
+                        <option value="{{ s.nombre }}" style="color: #000;">{{ s.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Tiempo que Resuelve</label>
+                    <select name="tiempo_que_resuelve" class="search-input">
+                        <option value="MESES" style="color: #000;">MESES</option>
+                        <option value="DÍAS" style="color: #000;">DÍAS</option>
+                        <option value="NO APLICA" style="color: #000;">NO APLICA</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Inicio</label>
+                    <input type="date" name="fecha_inicio" class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Término</label>
+                    <input type="date" name="fecha_termino" class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Días</label>
+                    <input type="number" name="dias" value="0" class="search-input">
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Resolución / Doc. Sanción</label>
+                <input type="text" name="resolucion_documento" placeholder="Ej: RD N° 120-2026-INPE/PAD" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-sancion').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--danger); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Sanción</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL VACACIONES -->
+<div id="modal-vacacion" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 680px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <h3 style="font-weight: 700;">Registrar Período Vacacional</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Cómputo anual de 30 días con cálculo automático de saldos</p>
+            </div>
+            <button onclick="document.getElementById('modal-vacacion').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-vacacion" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            
+            <!-- Buscador rápido y Selector de Personal -->
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Buscar Servidor (escribe las primeras letras)</label>
+                <input type="text" id="filtroEmpleadoVac" placeholder="🔍 Escribe para filtrar apellidos, nombres o código..." class="search-input" style="margin-bottom: 0.5rem; background: rgba(255,255,255,0.08);">
+                
+                <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Servidor del Mes</label>
+                <select name="id_empleado" id="selectEmpleadoVac" class="search-input" required size="4" style="height: auto; cursor: pointer;">
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" data-codigo="{{ p.codigo_servidor }}" data-nombre="{{ p.apellidos_nombres }}" style="color: #000; padding: 0.4rem;">
+                        {{ p.codigo_servidor }} - {{ p.apellidos_nombres }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Período (Año)</label>
+                    <input type="text" name="periodo" id="periodoVac" value="2025" placeholder="Ej: 2025, 2026" class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">F. Inicio</label>
+                    <input type="date" name="fecha_inicio" id="fechaInicioVac" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">F. Término</label>
+                    <input type="date" name="fecha_termino" id="fechaTerminoVac" required class="search-input">
+                </div>
+            </div>
+
+            <!-- Panel Informativo de Saldo Vacacional en Tiempo Real -->
+            <div id="panelSaldoVacacional" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 10px; padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">F. Ingreso EEPP</div>
+                    <div id="saldoFechaIngreso" style="font-weight: 700; color: #fff;">-</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Derecho Anual</div>
+                    <div style="font-weight: 700; color: var(--primary);">30 días</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Gozados en Periodo</div>
+                    <div id="saldoDiasGozados" style="font-weight: 700; color: var(--warning);">-</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Saldo Disponible</div>
+                    <div id="saldoDisponible" style="font-weight: 800; font-size: 1.1rem; color: var(--secondary);">-</div>
+                </div>
+            </div>
+
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Días Computados para este Registro</label>
+                <input type="number" name="dias" id="diasComputadosVac" value="15" min="1" max="30" required class="search-input">
+            </div>
+
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones (Adelanto / Término / Fraccionamiento)</label>
+                <input type="text" name="observaciones" id="obsVac" placeholder="Ej: Adelanto de vacaciones, le resta saldo" class="search-input">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-vacacion').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--primary); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Vacaciones</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 1. Filtrado en tiempo real de servidores
+    const filtroInput = document.getElementById('filtroEmpleadoVac');
+    const selectEmp = document.getElementById('selectEmpleadoVac');
+    if (filtroInput && selectEmp) {
+        filtroInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            const options = selectEmp.querySelectorAll('option');
+            let firstMatch = null;
+            options.forEach(opt => {
+                const text = opt.textContent.toLowerCase();
+                const match = text.includes(query);
+                opt.style.display = match ? '' : 'none';
+                if (match && !firstMatch) firstMatch = opt;
+            });
+            if (firstMatch && query.length > 0) {
+                selectEmp.value = firstMatch.value;
+                actualizarSaldoVacacional();
+            }
+        });
+
+        selectEmp.addEventListener('change', actualizarSaldoVacacional);
+        document.getElementById('periodoVac').addEventListener('input', actualizarSaldoVacacional);
+    }
+
+    // 2. Cálculo dinámico de saldo al seleccionar personal o periodo
+    function actualizarSaldoVacacional() {
+        const idEmp = selectEmp.value;
+        const periodo = document.getElementById('periodoVac').value || '2025';
+        if (!idEmp) return;
+
+        fetch(`/vacaciones/api/saldo?id_empleado=${idEmp}&periodo=${encodeURIComponent(periodo)}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('saldoFechaIngreso').textContent = data.fecha_ingreso || 'No registrada';
+                document.getElementById('saldoDiasGozados').textContent = (data.dias_gozados || 0) + ' días';
+                document.getElementById('saldoDisponible').textContent = (data.saldo_restante || 0) + ' días';
+                
+                // Sugerir días computados si aún no se ha modificado
+                const diasInput = document.getElementById('diasComputadosVac');
+                if (data.saldo_restante > 0 && diasInput.value > data.saldo_restante) {
+                    diasInput.value = data.saldo_restante;
+                }
+            })
+            .catch(err => console.error('Error al calcular saldo:', err));
+    }
+
+    // 3. Cálculo automático de días según fechas de inicio y término
+    const fInicio = document.getElementById('fechaInicioVac');
+    const fTermino = document.getElementById('fechaTerminoVac');
+    if (fInicio && fTermino) {
+        function calcularDiasEntreFechas() {
+            if (fInicio.value && fTermino.value) {
+                const d1 = new Date(fInicio.value);
+                const d2 = new Date(fTermino.value);
+                const diffTime = d2 - d1;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                if (diffDays > 0) {
+                    document.getElementById('diasComputadosVac').value = diffDays;
+                }
+            }
+        }
+        fInicio.addEventListener('change', calcularDiasEntreFechas);
+        fTermino.addEventListener('change', calcularDiasEntreFechas);
+    }
+</script>
+
+
+<!-- MODAL INASISTENCIAS -->
+<div id="modal-inasistencia" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 650px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Inasistencia Injustificada</h3>
+            <button onclick="document.getElementById('modal-inasistencia').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-inasistencia" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor del Mes</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Cantidad Días</label>
+                    <input type="number" name="dias" value="1" min="1" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Fechas Detalladas (Días)</label>
+                    <input type="text" name="fechas_detalle" placeholder="Ej: 2, 3, 4, 16, 17" required class="search-input">
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones (Ej: Por acumulación minutos P/P)</label>
+                <input type="text" name="observaciones" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-inasistencia').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--danger); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

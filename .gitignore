@@ -1,0 +1,34 @@
+# Entorno virtual de Python
+.venv/
+venv/
+env/
+ENV/
+
+# Bytecode y caches de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Configuraciones de IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Logs y temporales
+*.log
+scratch/
+temp/
+tmp/
+
+# Base de datos (Opcional: Si deseas que la base de datos SQLite se sincronice entre tus dos máquinas, 
+# puedes comentar la siguiente línea con '#'. Si contiene datos reales sensibles, déjala ignorada):
+# rrhh_control.db

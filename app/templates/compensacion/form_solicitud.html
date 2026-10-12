@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Solicitud de Compensación (Anexo 01) | INPE{% endblock %}
+{% block header_title %}Registro Oficial de Solicitud de Compensación (24x48){% endblock %}
+
+{% block content %}
+<div style="max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;">
+
+    <!-- CABECERA DE NAVEGACIÓN -->
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <a href="/compensacion" style="color: var(--text-muted); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-arrow-left"></i> Volver a Matriz Anexo 3
+        </a>
+        <span style="font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.3rem 0.6rem; border-radius: 6px;">
+            Lineamiento LI-001-2023-INPE-OGA (Numeral 5.2 y 5.3)
+        </span>
+    </div>
+
+    {% if error %}
+    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    {% if success %}
+    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ success }}</span>
+        </div>
+        {% if id_solicitud %}
+        <a href="/compensacion/papeleta/{{ id_solicitud }}" target="_blank" style="background: #10b981; color: #fff; text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
+            <i class="fa-solid fa-print"></i> Ver/Imprimir Papeleta Anexo 01
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- FORMULARIO OFICIAL ANEXO 01 -->
+    <div class="glass-card" style="padding: 2rem;">
+        <div style="text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: 1px;">ANEXO N° 01 &bull; REG-010-URH</div>
+            <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin: 0.25rem 0;">FORMATO DE COMPENSACIÓN DE DÍAS (24X48)</h3>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0;">
+                Resolución Directoral N° 146-2023-INPE/OGA &bull; Establecimiento Penitenciario Mujeres Iquitos
+            </p>
+        </div>
+
+        <form method="POST" action="/compensacion/solicitud" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <!-- SELECCIÓN DE SERVIDOR -->
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                    Servidor Penitenciario (Jornada 24x48) <span style="color: #ef4444;">*</span>
+                </label>
+                <select name="id_empleado" id="id_empleado" required onchange="actualizarInfoServidor()"
+                        style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                    <option value="" style="background: #1e293b; color: #94a3b8;">-- Seleccione el Servidor --</option>
+                    {% for emp in empleados_24x48 %}
+                    <option value="{{ emp.id_empleado }}" data-cip="{{ emp.codigo_servidor }}" data-dni="{{ emp.dni }}" data-asignados="{{ emp.dias_asignados }}" data-disponibles="{{ emp.dias_disponibles }}" data-cargo="{{ emp.cargo_funcion or 'Agente de Seguridad' }}" style="background: #1e293b; color: #fff;">
+                        {{ emp.codigo_servidor }} - {{ emp.apellidos_nombres }} (Saldo: {{ emp.dias_disponibles }} días disp.)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- TARJETA DE ESTADO DE SALDO EN TIEMPO REAL -->
+            <div id="infoSaldoBox" style="display: none; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 1rem; font-size: 0.85rem;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">Días Asignados RD:</span>
+                        <div id="lblAsignados" style="font-weight: 800; font-size: 1.1rem; color: #60a5fa;">-</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">Días Ya Gozados:</span>
+                        <div id="lblGozados" style="font-weight: 800; font-size: 1.1rem; color: #34d399;">-</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">Saldo Disponible:</span>
+                        <div id="lblDisponibles" style="font-weight: 800; font-size: 1.1rem; color: #fbbf24;">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FECHAS -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        Fecha de Presentación de Solicitud <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="date" name="fecha_solicitud" id="fecha_solicitud" required value="{{ fecha_hoy }}"
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">Mínimo 5 días antes según Directiva (numeral 5.3)</span>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        Día a Compensar (Jornada 24 hrs - Ejercicio 2026) <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="date" name="fecha_compensacion" id="fecha_compensacion" required min="2026-01-01" max="2026-12-31"
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                    <span style="font-size: 0.7rem; color: #38bdf8;">Solo turnos del año 2026 (24 horas continuas no fraccionables)</span>
+                </div>
+            </div>
+
+            <!-- REGULARIZACIÓN EXCEPCIONAL -->
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                <input type="checkbox" name="es_regularizacion" id="es_regularizacion" value="true" style="margin-top: 0.25rem; cursor: pointer;">
+                <div>
+                    <label for="es_regularizacion" style="font-size: 0.85rem; font-weight: 700; color: #fbbf24; cursor: pointer;">
+                        Solicitud con menos de 5 días de antelación (Regularización Excepcional)
+                    </label>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                        Marque solo si cuenta con autorización superior por necesidad de servicio penitenciario. Deberá detallar el motivo en las observaciones.
+                    </p>
+                </div>
+            </div>
+
+            <!-- DETALLE Y AUTORIZACIONES -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        Firma / Sello Jefe Directo
+                    </label>
+                    <input type="text" name="jefe_inmediato" value="AUTORIZADO (Jefe Seguridad)"
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        V°B° Especialista de Personal
+                    </label>
+                    <input type="text" name="especialista_personal" value="CONFORME (Recursos Humanos)"
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                    Observaciones / Justificación de Servicio
+                </label>
+                <textarea name="observaciones" rows="2" placeholder="Detalle adicional u observaciones operativas..."
+                          style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.85rem; outline: none;"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <a href="/compensacion" style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem;">
+                    Cancelar
+                </a>
+                <button type="submit" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.75rem 1.75rem; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                    <i class="fa-solid fa-floppy-disk"></i> Autorizar y Registrar Compensación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function actualizarInfoServidor() {
+    const sel = document.getElementById('id_empleado');
+    const opt = sel.options[sel.selectedIndex];
+    const box = document.getElementById('infoSaldoBox');
+
+    if (!opt || !opt.value) {
+        box.style.display = 'none';
+        return;
+    }
+
+    const asignados = parseInt(opt.getAttribute('data-asignados') || '16');
+    const disponibles = parseInt(opt.getAttribute('data-disponibles') || '16');
+    const gozados = asignados - disponibles;
+
+    document.getElementById('lblAsignados').innerText = asignados + ' días';
+    document.getElementById('lblGozados').innerText = gozados + ' días';
+    document.getElementById('lblDisponibles').innerText = disponibles + ' días';
+
+    box.style.display = 'block';
+}
+</script>
+{% endblock %}

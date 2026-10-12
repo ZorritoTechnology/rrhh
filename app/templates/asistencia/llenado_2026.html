@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Asistencia 2026 - Registro Mensual{% endblock %}
+{% block header_title %}Registro Mensual de Asistencia 2026{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 2rem;">
+
+    <!-- ALERTA / MENSAJES -->
+    {% if mensaje %}
+    <div class="alert-toast alert-success">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.5rem;"></i>
+        <div>
+            <div style="font-weight: 700;">¡Operación Exitosa!</div>
+            <div style="font-size: 0.85rem;">{{ mensaje }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert-toast alert-error">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem;"></i>
+        <div>
+            <div style="font-weight: 700;">Atención / Error</div>
+            <div style="font-size: 0.85rem;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 1. SELECTOR DEL MES (2026) -->
+    <div class="table-container">
+        <div class="table-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <h3 style="font-size: 1.2rem; font-weight: 700;">1. Seleccionar Período a Gestionar</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Navega entre los meses del ejercicio 2026</p>
+            </div>
+            <span class="badge badge-neutral">Año 2026</span>
+        </div>
+
+        <form action="/asistencia/llenado-2026" method="GET" style="display: grid; grid-template-columns: 3fr 1fr; gap: 1.5rem; align-items: end;">
+            <div>
+                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Mes del Ejercicio</label>
+                <select name="mes" class="search-input" style="cursor: pointer;">
+                    {% for m_id, m_nombre in meses %}
+                    <option value="{{ m_id }}" {% if mes_seleccionado == m_id %}selected{% endif %} style="color: #000;">
+                        {{ m_nombre }} 2026 {% if m_id == 1 %}(Actual){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" style="width: 100%; background: var(--primary); color: #fff; border: none; border-radius: 12px; padding: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: 0.2s;">
+                <i class="fa-solid fa-folder-open"></i> Abrir Período
+            </button>
+        </form>
+    </div>
+
+    <!-- 2. FORMULARIO MODULAR DE NOVEDADES -->
+    <div class="table-container">
+        <div class="table-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <h3 style="font-size: 1.2rem; font-weight: 700;">2. Registrar Novedad - Mes {{ mes_seleccionado }}/2026</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Ingresa tardanzas, licencias, vacaciones, desplazamientos, permisos o inasistencias</p>
+            </div>
+            <span class="badge badge-success">Formulario Oficial</span>
+        </div>
+
+        <form action="/asistencia/guardar-novedad" method="POST" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <input type="hidden" name="anio" value="2026">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Servidor / Empleado</label>
+                    <select name="id_empleado" required class="search-input" style="cursor: pointer;">
+                        <option value="" style="color: #000;">-- Seleccione Servidor --</option>
+                        {% for emp in empleados %}
+                        <option value="{{ emp.id_empleado }}" style="color: #000;">{{ emp.codigo_servidor }} - {{ emp.apellidos_nombres }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Tipo de Novedad</label>
+                    <select name="tipo_novedad" id="tipoNovedad" required class="search-input" style="cursor: pointer;">
+                        <option value="tardanza" style="color: #000;">Tardanza (en minutos)</option>
+                        <option value="permiso" style="color: #000;">Permiso Particular (en minutos)</option>
+                        <option value="inasistencia" style="color: #000;">Inasistencia Injustificada (en días)</option>
+                        <option value="licencia" style="color: #000;">Licencia Médica / Otros (en días)</option>
+                        <option value="vacacion" style="color: #000;">Vacaciones (en días)</option>
+                        <option value="desplazamiento" style="color: #000;">Desplazamiento (Rotación/Traslado)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Campos Condicionales (Licencias) -->
+            <div id="campos_licencia" style="display: none; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: 12px; border: 1px dashed var(--border-color);">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Tipo de Licencia</label>
+                    <input type="text" name="tipo_licencia" placeholder="Ej: ENFERMEDAD, MATERNIDAD, FALLECIMIENTO" class="search-input">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Entidad Emisora</label>
+                    <input type="text" name="entidad" placeholder="Ej: ESSALUD, MINSA, PARTICULAR" class="search-input">
+                </div>
+            </div>
+
+            <!-- Campos Condicionales (Desplazamientos) -->
+            <div id="campos_desplazamiento" style="display: none; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: 12px; border: 1px dashed var(--border-color);">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Área / EP Destino u Origen</label>
+                    <input type="text" name="area_destino" placeholder="Ej: EP Pucallpa, Sede Central" class="search-input">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Cargo o Función</label>
+                    <input type="text" name="cargo_funcion" placeholder="Ej: Agente de Seguridad" class="search-input">
+                </div>
+            </div>
+
+            <!-- Tiempos y Fechas -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Cantidad (Días / Minutos)</label>
+                    <input type="number" name="cantidad" value="1" min="1" required class="search-input">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Fecha Inicio</label>
+                    <input type="date" name="fecha_inicio" class="search-input">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Fecha Término</label>
+                    <input type="date" name="fecha_termino" class="search-input">
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Observaciones / Resolución / Documento</label>
+                <input type="text" name="observaciones" placeholder="Ej: Memorando N° 045-2026, CITT N° 12345, etc." class="search-input">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" style="background: var(--secondary); color: #fff; border: none; border-radius: 12px; padding: 0.85rem 2.5rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Novedad
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 3. CONSOLIDADO Y GESTIÓN DE REGISTROS DEL MES -->
+    <div class="table-container">
+        <div class="table-header">
+            <div>
+                <h3 style="font-size: 1.2rem; font-weight: 700;">3. Novedades Registradas en el Mes {{ mes_seleccionado }}/2026</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Total de incidencias: {{ resumen.kpis.total_novedades }}</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <span class="badge badge-neutral">Tardanzas: {{ resumen.kpis.total_tardanzas_min }} min</span>
+                <span class="badge badge-warning">Licencias: {{ resumen.kpis.total_dias_licencia }} d</span>
+                <span class="badge badge-success">Vacaciones: {{ resumen.kpis.total_dias_vacaciones }} d</span>
+            </div>
+        </div>
+
+        {% if resumen.kpis.total_novedades == 0 %}
+        <div style="padding: 3rem 1rem; text-align: center; color: var(--text-muted);">
+            <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.4;"></i>
+            <p>No hay novedades registradas aún para el mes {{ mes_seleccionado }}/2026.</p>
+        </div>
+        {% else %}
+
+        <div style="display: flex; flex-direction: column; gap: 2rem; margin-top: 1rem;">
+            
+            <!-- Desplazamientos -->
+            {% if resumen.novedades.desplazamientos %}
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;"><i class="fa-solid fa-arrows-split-up-and-left" style="color: var(--primary); margin-right: 0.5rem;"></i> Desplazamientos / Rotaciones</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Servidor</th>
+                            <th>Área / EP</th>
+                            <th>Cargo / Función</th>
+                            <th>Fecha</th>
+                            <th>Observaciones</th>
+                            <th style="text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in resumen.novedades.desplazamientos %}
+                        <tr>
+                            <td style="font-weight: 600; color: #fff;">{{ d.apellidos_nombres }}</td>
+                            <td>{{ d.area }}</td>
+                            <td>{{ d.cargo_funcion }}</td>
+                            <td>{{ d.fecha_desplazamiento }}</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ d.observaciones }}</td>
+                            <td style="text-align: center;">
+                                <form action="/asistencia/eliminar-novedad" method="POST" onsubmit="return confirm('¿Seguro de eliminar este registro?');" style="display: inline;">
+                                    <input type="hidden" name="tipo" value="desplazamiento">
+                                    <input type="hidden" name="id_novedad" value="{{ d.id_desplazamiento }}">
+                                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                    <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Licencias -->
+            {% if resumen.novedades.licencias %}
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;"><i class="fa-solid fa-notes-medical" style="color: var(--warning); margin-right: 0.5rem;"></i> Licencias Médicas / Oficiales</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Servidor</th>
+                            <th>Tipo Licencia</th>
+                            <th>Entidad</th>
+                            <th>Días</th>
+                            <th>Período</th>
+                            <th>Observaciones</th>
+                            <th style="text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in resumen.novedades.licencias %}
+                        <tr>
+                            <td style="font-weight: 600; color: #fff;">{{ l.apellidos_nombres }}</td>
+                            <td><span class="badge badge-warning">{{ l.tipo }}</span></td>
+                            <td>{{ l.entidad }}</td>
+                            <td style="font-weight: 700; color: #fff;">{{ l.dias }} d</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ l.fecha_inicio }} al {{ l.fecha_termino }}</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ l.observaciones }}</td>
+                            <td style="text-align: center;">
+                                <form action="/asistencia/eliminar-novedad" method="POST" onsubmit="return confirm('¿Seguro de eliminar esta licencia?');" style="display: inline;">
+                                    <input type="hidden" name="tipo" value="licencia">
+                                    <input type="hidden" name="id_novedad" value="{{ l.id_licencia }}">
+                                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                    <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Vacaciones -->
+            {% if resumen.novedades.vacaciones %}
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;"><i class="fa-solid fa-umbrella-beach" style="color: var(--secondary); margin-right: 0.5rem;"></i> Vacaciones</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Servidor</th>
+                            <th>Período</th>
+                            <th>Días</th>
+                            <th>Fechas</th>
+                            <th>Observaciones</th>
+                            <th style="text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in resumen.novedades.vacaciones %}
+                        <tr>
+                            <td style="font-weight: 600; color: #fff;">{{ v.apellidos_nombres }}</td>
+                            <td><span class="badge badge-success">{{ v.periodo }}</span></td>
+                            <td style="font-weight: 700; color: #fff;">{{ v.dias }} d</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ v.fecha_inicio }} al {{ v.fecha_termino }}</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ v.observaciones }}</td>
+                            <td style="text-align: center;">
+                                <form action="/asistencia/eliminar-novedad" method="POST" onsubmit="return confirm('¿Seguro de eliminar este registro de vacación?');" style="display: inline;">
+                                    <input type="hidden" name="tipo" value="vacacion">
+                                    <input type="hidden" name="id_novedad" value="{{ v.id_vacacion }}">
+                                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                    <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Tardanzas, Permisos e Inasistencias -->
+            {% if resumen.novedades.tardanzas or resumen.novedades.permisos or resumen.novedades.inasistencias %}
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;"><i class="fa-solid fa-clock" style="color: var(--danger); margin-right: 0.5rem;"></i> Tardanzas, Permisos e Inasistencias</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Servidor</th>
+                            <th>Tipo Incidencia</th>
+                            <th>Cómputo</th>
+                            <th>Observaciones / Detalle</th>
+                            <th style="text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in resumen.novedades.tardanzas %}
+                        <tr>
+                            <td style="font-weight: 600; color: #fff;">{{ t.apellidos_nombres }}</td>
+                            <td><span class="badge badge-danger">Tardanza</span></td>
+                            <td style="font-weight: 700; color: var(--danger);">{{ t.minutos }} min</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ t.observaciones }}</td>
+                            <td style="text-align: center;">
+                                <form action="/asistencia/eliminar-novedad" method="POST" onsubmit="return confirm('¿Seguro de eliminar esta tardanza?');" style="display: inline;">
+                                    <input type="hidden" name="tipo" value="tardanza">
+                                    <input type="hidden" name="id_novedad" value="{{ t.id_tardanza }}">
+                                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                    <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% for p in resumen.novedades.permisos %}
+                        <tr>
+                            <td style="font-weight: 600; color: #fff;">{{ p.apellidos_nombres }}</td>
+                            <td><span class="badge badge-warning">Permiso Particular</span></td>
+                            <td style="font-weight: 700; color: var(--warning);">{{ p.minutos }} min</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ p.observaciones }}</td>
+                            <td style="text-align: center;">
+                                <form action="/asistencia/eliminar-novedad" method="POST" onsubmit="return confirm('¿Seguro de eliminar este permiso?');" style="display: inline;">
+                                    <input type="hidden" name="tipo" value="permiso">
+                                    <input type="hidden" name="id_novedad" value="{{ p.id_permiso }}">
+                                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                    <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% for i in resumen.novedades.inasistencias %}
+                        <tr>
+                            <td style="font-weight: 600; color: #fff;">{{ i.apellidos_nombres }}</td>
+                            <td><span class="badge badge-danger">Inasistencia Injustificada</span></td>
+                            <td style="font-weight: 700; color: var(--danger);">{{ i.dias }} d</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ i.fechas_detalle }} - {{ i.observaciones }}</td>
+                            <td style="text-align: center;">
+                                <form action="/asistencia/eliminar-novedad" method="POST" onsubmit="return confirm('¿Seguro de eliminar esta inasistencia?');" style="display: inline;">
+                                    <input type="hidden" name="tipo" value="inasistencia">
+                                    <input type="hidden" name="id_novedad" value="{{ i.id_inasistencia }}">
+                                    <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+                                    <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('tipoNovedad').addEventListener('change', function() {
+        var tipo = this.value;
+        document.getElementById('campos_licencia').style.display = (tipo === 'licencia') ? 'grid' : 'none';
+        document.getElementById('campos_desplazamiento').style.display = (tipo === 'desplazamiento') ? 'grid' : 'none';
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Saldos y Vacaciones - RRHH NexGen{% endblock %}
+{% block header_title %}Control y Saldos de Vacaciones{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 2rem;">
+
+    <!-- STATS CARDS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-title">Derecho Base Anual</div>
+            <div class="stat-value">30</div>
+            <div class="stat-desc">Días calendario por año laborado</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Total Días Gozados</div>
+            <div class="stat-value" style="color: var(--secondary);">{{ stats.total_dias_gozados }} d</div>
+            <div class="stat-desc">Consumidos por el personal</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Personal Excedido</div>
+            <div class="stat-value {% if stats.total_excedidos > 0 %}text-danger{% else %}text-secondary{% endif %}">
+                {{ stats.total_excedidos }}
+            </div>
+            <div class="stat-desc">> 30 días registrados</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Fraccionamiento</div>
+            <div class="stat-value" style="color: var(--warning);">{{ stats.total_fraccionados }}</div>
+            <div class="stat-desc">Uso parcial de vacaciones</div>
+        </div>
+    </div>
+
+    <!-- TABLA DE SALDOS Y CONSUMOS -->
+    <div class="table-container">
+        <div class="table-header" style="flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h3 style="font-size: 1.25rem; font-weight: 700;">Reporte Consolidado de Vacaciones por Servidor</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Control detallado de consumo, saldo disponible y desglose de períodos</p>
+            </div>
+            <div style="width: 300px;">
+                <input type="text" id="buscadorVacaciones" placeholder="Buscar por nombre o código..." class="search-input">
+            </div>
+        </div>
+        
+        <table class="data-table" id="tablaVacaciones">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Servidor</th>
+                    <th>Consumo</th>
+                    <th>Saldo Disponible</th>
+                    <th>Desglose de Períodos</th>
+                    <th>Estado</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in empleados_stats %}
+                <tr class="fila-vacacion">
+                    <td style="font-family: monospace; color: var(--text-muted);">{{ row.codigo_servidor }}</td>
+                    <td style="font-weight: 600; color: #fff;" class="nombre-servidor">{{ row.apellidos_nombres }}</td>
+                    <td>
+                        <span class="{% if row.excedido %}text-danger{% else %}text-white{% endif %}" style="font-size: 1.05rem; font-weight: 700;">
+                            {{ row.dias_consumidos }} d
+                        </span>
+                    </td>
+                    <td>
+                        <span style="font-weight: 700; color: var(--secondary);">{{ row.dias_saldo }} d</span>
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ row.desglose }}</td>
+                    <td>
+                        {% if row.estado == 'EXCEDIDO' %}
+                            <span class="badge badge-danger">{{ row.estado }}</span>
+                        {% elif row.estado == 'REGULAR' %}
+                            <span class="badge badge-success">{{ row.estado }}</span>
+                        {% elif row.estado == 'FRACCIONADO' %}
+                            <span class="badge badge-warning">{{ row.estado }}</span>
+                        {% else %}
+                            <span class="badge badge-neutral">{{ row.estado }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ row.observaciones }}">
+                        {{ row.observaciones }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('buscadorVacaciones').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const filas = document.querySelectorAll('.fila-vacacion');
+        filas.forEach(f => {
+            const texto = f.innerText.toLowerCase();
+            f.style.display = texto.includes(query) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

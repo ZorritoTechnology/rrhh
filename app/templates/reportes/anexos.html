@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Anexos Oficiales - Directiva 003-2023-INPE{% endblock %}
+{% block header_title %}Catálogo de Anexos Oficiales - Directiva 003-2023-INPE-OGA{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 2rem;">
+
+    <div class="table-container">
+        <div class="table-header">
+            <div>
+                <h3 style="font-size: 1.25rem; font-weight: 700;">Formatos Oficiales de Control de Asistencia</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Directiva N° 003-2023-INPE-OGA - Normas para el control de asistencia y permanencia</p>
+            </div>
+            <span class="badge badge-neutral">10 Anexos Normativos</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+            {% for anexo in anexos %}
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-color)'; this.style.transform='translateY(0)'">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <span class="badge badge-success" style="font-family: monospace;">{{ anexo.codigo }}</span>
+                        <i class="fa-solid fa-file-contract" style="color: var(--primary);"></i>
+                    </div>
+                    <h4 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">{{ anexo.titulo }}</h4>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">{{ anexo.descripcion }}</p>
+                </div>
+
+                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                    <a href="/reportes/anexo/{{ anexo.id }}?anio=2026&mes=1" style="text-decoration: none; color: #fff; font-size: 0.85rem; font-weight: 600; background: var(--primary); padding: 0.5rem 1rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-arrow-right"></i> Previsualizar
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

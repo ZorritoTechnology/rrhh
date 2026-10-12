@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Compensación 24x48 - Anexo 03 Reporte Mensualizado | INPE{% endblock %}
+{% block header_title %}Módulo de Compensación de Jornada Laboral 24x48 (LI-001-2023-INPE-OGA){% endblock %}
+
+{% block content %}
+<style>
+    .cell-mes {
+        padding: 0.5rem 0.3rem;
+        font-weight: 700;
+    }
+    .cell-mes-active {
+        color: #38bdf8;
+    }
+    .cell-mes-empty {
+        color: #475569;
+    }
+</style>
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+    <!-- BANNER NORMATIVO INSTITUCIONAL -->
+    <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="background: #3b82f6; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 6px;">RD N° 146-2023-INPE/OGA</span>
+                <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">Lineamiento LI-001-2023</span>
+                <span style="color: var(--text-muted); font-size: 0.85rem;">Directiva DI-003-2023-INPE-OGA (Num. 6.4)</span>
+            </div>
+            <h2 style="font-size: 1.4rem; font-weight: 700; color: #fff; margin: 0 0 0.25rem 0;">Control Anualizado de Compensación de Días (Jornada 24x48)</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
+                Establecimiento Penitenciario Mujeres Iquitos (722) &bull; Máximo computable: <strong>16 días de 24 horas por año fiscal</strong> (No fraccionables).
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="/compensacion/solicitud" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; text-decoration: none; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+                <i class="fa-solid fa-file-circle-plus"></i> Nueva Solicitud (Anexo 01)
+            </a>
+            <a href="/compensacion/solicitudes" style="background: rgba(255, 255, 255, 0.05); color: #e2e8f0; border: 1px solid var(--border-color); text-decoration: none; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-list-check"></i> Historial de Solicitudes
+            </a>
+        </div>
+    </div>
+
+    <!-- TARJETAS DE INDICADORES -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+        <div class="glass-card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Servidores con 24x48</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #60a5fa; margin-top: 0.25rem;">{{ total_servidores }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Personal de Seguridad</div>
+        </div>
+        <div class="glass-card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Días Asignados Totales</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #a78bfa; margin-top: 0.25rem;">{{ total_asignados }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Topes por RD Anual</div>
+        </div>
+        <div class="glass-card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Días Compensados 2026</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #34d399; margin-top: 0.25rem;">{{ total_consumidos }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Jornadas de 24h Gozadas</div>
+        </div>
+        <div class="glass-card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Saldo Pendiente Global</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #f59e0b; margin-top: 0.25rem;">{{ total_pendientes }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Por compensar en 2026</div>
+        </div>
+    </div>
+
+    <!-- MATRIZ OFICIAL: ANEXO N° 03 REPORTE MENSUALIZADO -->
+    <div class="glass-card" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">FORMATO OFICIAL</span>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">ANEXO 3: REPORTE MENSUALIZADO DE COMPENSACIÓN (AÑO {{ anio }})</h3>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                    Registro de días gozados por cada servidor mes a mes (24 horas continuas de servicio).
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <input type="text" id="filtroCompensacion" placeholder="Buscar por CIP, DNI o Nombres..." 
+                       style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.85rem; color: #fff; font-size: 0.85rem; width: 260px;"
+                       onkeyup="filtrarTabla()">
+                <button onclick="window.print()" style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid var(--border-color); padding: 0.5rem 0.85rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">
+                    <i class="fa-solid fa-print"></i> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table id="tablaAnexo3" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: center;">
+                <thead>
+                    <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 0.6rem 0.4rem; text-align: center; width: 35px;">N°</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; width: 65px;">CIP</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; width: 75px;">DNI</th>
+                        <th style="padding: 0.6rem 0.75rem; text-align: left;">APELLIDOS Y NOMBRES</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; width: 90px;">RÉGIMEN</th>
+                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">ENE</th>
+                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">FEB</th>
+                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">MAR</th>
+                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">ABR</th>
+                        <th style="padding: 0.6rem 0.3rem;">MAY</th>
+                        <th style="padding: 0.6rem 0.3rem;">JUN</th>
+                        <th style="padding: 0.6rem 0.3rem;">JUL</th>
+                        <th style="padding: 0.6rem 0.3rem;">AGO</th>
+                        <th style="padding: 0.6rem 0.3rem;">SET</th>
+                        <th style="padding: 0.6rem 0.3rem;">OCT</th>
+                        <th style="padding: 0.6rem 0.3rem;">NOV</th>
+                        <th style="padding: 0.6rem 0.3rem;">DIC</th>
+                        <th style="padding: 0.6rem 0.5rem; background: rgba(16, 185, 129, 0.1); color: #34d399; font-weight: 700;">GOZADOS</th>
+                        <th style="padding: 0.6rem 0.5rem; background: rgba(245, 158, 11, 0.1); color: #fbbf24; font-weight: 700;">SALDO</th>
+                        <th style="padding: 0.6rem 0.75rem; text-align: left;">OBSERVACIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in matriz %}
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 0.5rem 0.4rem; color: var(--text-muted);">{{ loop.index }}</td>
+                        <td style="padding: 0.5rem 0.5rem; text-align: left; font-weight: 700; color: #60a5fa;">{{ row.codigo_servidor }}</td>
+                        <td style="padding: 0.5rem 0.5rem; text-align: left; color: #cbd5e1;">{{ row.dni }}</td>
+                        <td style="padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; color: #fff;">{{ row.apellidos_nombres }}</td>
+                        <td style="padding: 0.5rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--text-muted);">{{ row.regimen_nombre or 'Ley N° 29709' }}</td>
+                        
+                        <td class="cell-mes {% if row.m_1 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_1 }}</td>
+                        <td class="cell-mes {% if row.m_2 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_2 }}</td>
+                        <td class="cell-mes {% if row.m_3 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_3 }}</td>
+                        <td class="cell-mes {% if row.m_4 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_4 }}</td>
+                        <td class="cell-mes {% if row.m_5 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_5 }}</td>
+                        <td class="cell-mes {% if row.m_6 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_6 }}</td>
+                        <td class="cell-mes {% if row.m_7 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_7 }}</td>
+                        <td class="cell-mes {% if row.m_8 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_8 }}</td>
+                        <td class="cell-mes {% if row.m_9 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_9 }}</td>
+                        <td class="cell-mes {% if row.m_10 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_10 }}</td>
+                        <td class="cell-mes {% if row.m_11 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_11 }}</td>
+                        <td class="cell-mes {% if row.m_12 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_12 }}</td>
+                        
+                        <td style="padding: 0.5rem 0.5rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.05);">
+                            {{ row.total_utilizado }}
+                        </td>
+                        <td style="padding: 0.5rem 0.5rem; font-weight: 800; color: #fbbf24; background: rgba(245, 158, 11, 0.05);">
+                            {{ row.saldo_disponible }} / {{ row.dias_asignados }}
+                        </td>
+                        <td style="padding: 0.5rem 0.75rem; text-align: left; font-size: 0.75rem; color: #94a3b8;">
+                            {% if row.obs_saldo %}
+                                <span style="background: rgba(239, 68, 68, 0.15); color: #fca5a5; padding: 0.15rem 0.4rem; border-radius: 4px;">{{ row.obs_saldo }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function filtrarTabla() {
+    const input = document.getElementById('filtroCompensacion').value.toLowerCase();
+    const rows = document.querySelectorAll('#tablaAnexo3 tbody tr');
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

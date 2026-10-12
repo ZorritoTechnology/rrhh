@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Padrón de Servidores - RRHH NexGen{% endblock %}
+{% block header_title %}Padrón Maestro de Personal{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 2rem;">
+
+    <!-- ALERTA / MENSAJES -->
+    {% if mensaje %}
+    <div class="alert-toast alert-success">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.5rem;"></i>
+        <div>
+            <div style="font-weight: 700;">¡Éxito!</div>
+            <div style="font-size: 0.85rem;">{{ mensaje }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert-toast alert-error">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem;"></i>
+        <div>
+            <div style="font-weight: 700;">Atención</div>
+            <div style="font-size: 0.85rem;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ACCIONES Y FORMULARIO DE ALTA -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
+        
+        <!-- Padrón de Personal -->
+        <div class="table-container">
+            <div class="table-header" style="flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">Servidores Registrados ({{ total }})</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Planta activa de EP Mujeres Iquitos</p>
+                </div>
+                <div style="width: 250px;">
+                    <input type="text" id="buscadorPersonal" placeholder="Filtrar servidor o DNI..." class="search-input">
+                </div>
+            </div>
+
+            <table class="data-table" id="tablaPersonal">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>DNI</th>
+                        <th>Apellidos y Nombres</th>
+                        <th>Fecha Registro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in personal %}
+                    <tr class="fila-personal">
+                        <td style="font-family: monospace; color: var(--primary); font-weight: 700;">{{ emp.codigo_servidor }}</td>
+                        <td style="font-family: monospace; color: var(--text-muted);">{{ emp.dni or '-' }}</td>
+                        <td style="font-weight: 600; color: #fff;">{{ emp.apellidos_nombres }}</td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">{{ emp.created_at[:10] if emp.created_at else '2025-01-01' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Formulario de Nuevo Servidor -->
+        <div class="table-container">
+            <h3 style="font-size: 1.15rem; font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-user-plus" style="color: var(--secondary); margin-right: 0.5rem;"></i> Registrar Servidor
+            </h3>
+
+            <form action="/empleados/nuevo" method="POST" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Código Servidor *</label>
+                    <input type="text" name="codigo_servidor" required placeholder="Ej: 914592" class="search-input">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">DNI</label>
+                    <input type="text" name="dni" placeholder="Ej: 44556677" maxlength="8" class="search-input">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem;">Apellidos y Nombres *</label>
+                    <input type="text" name="apellidos_nombres" required placeholder="Ej: PEREZ GARCIA JUAN CARLOS" class="search-input">
+                </div>
+
+                <button type="submit" style="background: var(--secondary); color: #fff; border: none; border-radius: 12px; padding: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-plus"></i> Agregar al Padrón
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('buscadorPersonal').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const filas = document.querySelectorAll('.fila-personal');
+        filas.forEach(f => {
+            const texto = f.innerText.toLowerCase();
+            f.style.display = texto.includes(query) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

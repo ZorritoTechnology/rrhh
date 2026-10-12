@@ -1,0 +1,72 @@
+{% extends "premium_base.html" %}
+
+{% block title %}Cierre Anual Vacaciones - RRHH{% endblock %}
+{% block header_title %}Análisis de Vacaciones 2025{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-title">Derecho Base Anual</div>
+        <div class="stat-value">30</div>
+        <div class="stat-desc">Días calendario por año de labor</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-title">Estado del Ejercicio</div>
+        <div class="stat-value" style="color: var(--secondary)">CERRADO</div>
+        <div class="stat-desc">Consolidación de consumos 2025</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-title">Notificación Múltiple</div>
+        <div class="stat-value" style="color: var(--warning)">Alerta</div>
+        <div class="stat-desc">Personal con excesos identificados</div>
+    </div>
+</div>
+
+<div class="table-container">
+    <div class="table-header">
+        <h2>Reporte Consolidado de Consumo por Servidor</h2>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Servidor</th>
+                <th>Total Consumido (2025)</th>
+                <th>Desglose de Períodos</th>
+                <th>Estado del Servidor</th>
+                <th>Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in empleados_stats %}
+            <tr>
+                <td style="font-family: monospace; color: var(--text-muted);">{{ row.codigo_servidor }}</td>
+                <td style="font-weight: 600; color: #fff;">{{ row.apellidos_nombres }}</td>
+                <td>
+                    <span class="{% if row.excedido %}text-danger{% else %}text-white{% endif %}" style="font-size: 1.1rem; font-weight: 700;">
+                        {{ row.dias_consumidos }} d
+                    </span>
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.85rem;">{{ row.desglose }}</td>
+                <td>
+                    {% if row.estado == 'EXCEDIDO' %}
+                        <span class="badge badge-danger">{{ row.estado }}</span>
+                    {% elif row.estado == 'REGULAR' %}
+                        <span class="badge badge-success">{{ row.estado }}</span>
+                    {% elif row.estado == 'FRACCIONADO' %}
+                        <span class="badge badge-warning">{{ row.estado }}</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ row.estado }}</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ row.observaciones }}">
+                    {{ row.observaciones }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

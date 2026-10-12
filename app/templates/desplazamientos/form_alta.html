@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Alta por Desplazamiento | RRHH NexGen{% endblock %}
+{% block header_title %}Recepción de Servidor por Desplazamiento (Anexo 06){% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <a href="/desplazamientos" style="color: var(--text-muted); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-arrow-left"></i> Volver a Movimientos
+        </a>
+        <span style="font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.3rem 0.6rem; border-radius: 6px;">
+            Directiva DI-003-2023-INPE-OGA &bull; REG-006-URH
+        </span>
+    </div>
+
+    {% if error %}
+    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    {% if success %}
+    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ success }}</span>
+        </div>
+        {% if id_desplazamiento %}
+        <a href="/desplazamientos/constancia/{{ id_desplazamiento }}" target="_blank" style="background: #10b981; color: #fff; text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
+            <i class="fa-solid fa-print"></i> Ver Constancia Anexo 06
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- FORMULARIO OFICIAL DE ALTA -->
+    <div class="glass-card" style="padding: 2rem;">
+        <div style="text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 1px;">ANEXO N° 06 &bull; REG-006-URH</div>
+            <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin: 0.25rem 0;">REGISTRO DE ALTA POR DESPLAZAMIENTO</h3>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0;">
+                Carga formal del récord de vacaciones y días de compensación 24x48 del penal de procedencia
+            </p>
+        </div>
+
+        <form method="POST" action="/desplazamientos/alta" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- 1. SERVIDOR PENITENCIARIO -->
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                    1. Servidor Penitenciario Recibido <span style="color: #ef4444;">*</span>
+                </label>
+                <select name="id_empleado" id="id_empleado" required
+                        style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                    <option value="" style="background: #1e293b; color: #94a3b8;">-- Seleccione el Servidor del Padrón --</option>
+                    {% for emp in empleados %}
+                    <option value="{{ emp.id_empleado }}" style="background: #1e293b; color: #fff;">
+                        {{ emp.codigo_servidor }} - {{ emp.apellidos_nombres }} (DNI: {{ emp.dni }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Si el servidor es nuevo en la sede, asegúrese de haberlo ingresado previamente en el catálogo de personal.</span>
+            </div>
+
+            <!-- 2. ORIGEN Y FECHAS -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        2. Penal de Procedencia (Origen) <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select name="id_establecimiento_origen" id="id_establecimiento_origen" onchange="verificarOrigenManual()"
+                            style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                        <option value="" style="background: #1e293b; color: #94a3b8;">-- Seleccione Penal de Origen --</option>
+                        {% for est in establecimientos %}
+                        {% if est.id_establecimiento != 722 %}
+                        <option value="{{ est.id_establecimiento }}" style="background: #1e293b; color: #fff;">{{ est.nombre }}</option>
+                        {% endif %}
+                        {% endfor %}
+                        <option value="0" style="background: #1e293b; color: #fbbf24;">-- OTRO ESTABLECIMIENTO (Especificar) --</option>
+                    </select>
+                </div>
+                <div id="boxOrigenExt" style="display: none;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        Nombre del Establecimiento Externo
+                    </label>
+                    <input type="text" name="nombre_origen_ext" id="nombre_origen_ext" placeholder="Ej: EP Pucallpa, Sede Central INPE..."
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        3. Documento Oficial / Hoja de Desplazamiento <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="text" name="documento_oficial" required placeholder="Ej: Oficio N° 124-2026-INPE/705, R.P. N° 088-2026"
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        Fecha de Orden de Desplazamiento <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="date" name="fecha_desplazamiento" required value="{{ fecha_hoy }}"
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                        Fecha de Presentación Efectiva en EP Mujeres Iquitos <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="date" name="fecha_presentacion_eepp" required value="{{ fecha_hoy }}"
+                           style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.9rem; outline: none;">
+                </div>
+            </div>
+
+            <!-- 3. RÉCORD DE VACACIONES DE ORIGEN -->
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 1.25rem;">
+                <h4 style="color: #818cf8; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-umbrella-beach"></i> Récord Vacacional Certificado en Hoja de Desplazamiento
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Período Laboral</label>
+                        <input type="text" name="vacaciones_periodo" value="2025-2026"
+                               style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Días Vacaciones Gozados en Origen</label>
+                        <input type="number" name="vacaciones_gozadas_origen" id="vacaciones_gozadas_origen" value="0" min="0" max="30" onchange="calcularSaldoVac()"
+                               style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Saldo de Vacaciones Pendiente</label>
+                        <input type="number" name="vacaciones_saldo_origen" id="vacaciones_saldo_origen" value="30" min="0" max="30" readonly
+                               style="width: 100%; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; color: #34d399; font-weight: 700; font-size: 0.85rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. RÉCORD DE COMPENSACIÓN 24x48 DE ORIGEN (AÑO 2026) -->
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 1.25rem;">
+                <h4 style="color: #fbbf24; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Récord de Compensación 24x48 Certificado en Origen (Año 2026)
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Días Ganados en Penal Origen</label>
+                        <input type="number" name="comp_ganadas_origen" id="comp_ganadas_origen" value="0" min="0" max="16" onchange="calcularSaldoComp()"
+                               style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Días 24x48 Gozados en Origen</label>
+                        <input type="number" name="comp_gozadas_origen" id="comp_gozadas_origen" value="0" min="0" max="16" onchange="calcularSaldoComp()"
+                               style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Saldo de Compensación Transferido</label>
+                        <input type="number" name="comp_saldo_origen" id="comp_saldo_origen" value="0" min="0" max="16" readonly
+                               style="width: 100%; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; color: #fbbf24; font-weight: 700; font-size: 0.85rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- OBSERVACIONES -->
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.4rem;">
+                    Observaciones Institucionales
+                </label>
+                <textarea name="observaciones" rows="2" placeholder="Observaciones consignadas en la Hoja de Desplazamiento..."
+                          style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.85rem; outline: none;"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <a href="/desplazamientos" style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem;">
+                    Cancelar
+                </a>
+                <button type="submit" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.75rem 1.75rem; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                    <i class="fa-solid fa-check"></i> Registrar Alta de Servidor
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+
+<script>
+function verificarOrigenManual() {
+    const sel = document.getElementById('id_establecimiento_origen');
+    const box = document.getElementById('boxOrigenExt');
+    if (sel.value === '0') {
+        box.style.display = 'block';
+    } else {
+        box.style.display = 'none';
+    }
+}
+
+function calcularSaldoVac() {
+    const gozadas = parseInt(document.getElementById('vacaciones_gozadas_origen').value) || 0;
+    document.getElementById('vacaciones_saldo_origen').value = Math.max(0, 30 - gozadas);
+}
+
+function calcularSaldoComp() {
+    const ganadas = parseInt(document.getElementById('comp_ganadas_origen').value) || 0;
+    const gozadas = parseInt(document.getElementById('comp_gozadas_origen').value) || 0;
+    document.getElementById('comp_saldo_origen').value = Math.max(0, ganadas - gozadas);
+}
+</script>
+{% endblock %}
