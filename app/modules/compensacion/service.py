@@ -5,21 +5,22 @@ import json
 
 from app.core.database import get_connection
 from app.modules.compensacion.calendar_utils import generar_calendario_mes
+from app.modules.compensacion.repository import CompensacionRepository
 
 class CompensacionService:
 
     @staticmethod
     def calcular_anexo2_mes(anio: int, mes: int) -> Dict[str, Any]:
         """
-        Calcula la matriz Anexo 02 (Control Mensual de Días por Compensar)
-        para el personal de seguridad 24x48 activo en el mes cerrado.
-        Aplica las reglas del Lineamiento LI-001-2023-INPE-OGA:
-        1. Semanas completas de Lunes a Domingo.
-        2. Días de 24 horas completas de trabajo efectivo.
-        3. A partir del 3er turno de 24h en una semana (L-D) supera las 48h y genera 1 día de exceso.
-        4. Excluye días con Licencias (L), Vacaciones (V), Inasistencias (I) o Sanciones (S).
-        5. Corte semanal: Si la semana continúa al siguiente mes, el exceso se computa
-           en el mes donde se ejecuta dicho turno de 24 horas.
+        Calcula la matriz oficial del Anexo 02 (Control Mensual de Días por Compensar)
+        organizado por Grupo 1, Grupo 2 y Grupo 3 con sus respectivos Alcaides de Grupo.
+        Aplica las reglas normativas:
+        1. Ciclo rotativo 24x48 por grupo (Grupo 1: día 1, 4...; Grupo 2: día 2, 5...; Grupo 3: día 3, 6...).
+        2. Alcaide / Responsable de cada grupo identificado.
+        3. Rotaciones por Memorando: si rota a las 5pm se marca '5P' (no cuenta como 24h);
+           si rota haciendo guardia completa se marca '24'. Tras la rotación adopta su nuevo grupo.
+        4. Semanas de Lunes a Domingo: el 3er turno de 24h efectivas genera 1 día de exceso.
+        5. Exclusión de licencias (L), vacaciones (V), inasistencias (I) y sanciones (S).
         """
         calendario = generar_calendario_mes(anio, mes)
         num_dias = calendario["num_dias"]
@@ -27,7 +28,7 @@ class CompensacionService:
         with get_connection() as conn:
             cur = conn.cursor()
 
-            # 1. Obtener reporte del mes
+            # 1. Reporte mensual de asistencia
             cur.execute("""
                 SELECT id_reporte, estado FROM reportes_cierre_mensual 
                 WHERE anio = ? AND mes = ? AND id_establecimiento = 722
@@ -36,20 +37,25 @@ class CompensacionService:
             if not rep_row:
                 return {
                     "calendario": calendario,
-                    "empleados": [],
+                    "grupos": [],
                     "total_exceso_mes": 0,
-                    "mensaje": f"No se encontró reporte de asistencia para {mes:02d}/{anio}."
+                    "mensaje": f"No se encontró reporte de asistencia cerrado para {mes:02d}/{anio}."
                 }
             
             id_reporte = rep_row["id_reporte"]
 
-            # 2. Obtener personal de seguridad 24x48 del mes
+            # 2. Información de los 3 grupos y sus alcaides
+            grupos_info = CompensacionRepository.get_grupos_guardia()
+            alcaides_map = {g["id_grupo"]: g for g in grupos_info}
+
+            # 3. Personal de seguridad 24x48 del mes
             cur.execute("""
                 SELECT 
                     a.id_empleado,
                     e.codigo_servidor,
                     e.dni,
                     e.apellidos_nombres,
+                    COALESCE(e.grupo_guardia_default, 1) as grupo_guardia_default,
                     COALESCE(r.nombre, 'LEY 29709') as regimen_nombre,
                     a.cargo_funcion,
                     a.estado_laboral
@@ -64,12 +70,12 @@ class CompensacionService:
             if not personal:
                 return {
                     "calendario": calendario,
-                    "empleados": [],
+                    "grupos": [],
                     "total_exceso_mes": 0,
-                    "mensaje": "No hay personal con jornada 24x48 en la plantilla de este mes."
+                    "mensaje": "No hay personal con jornada 24x48 registrado en este mes."
                 }
 
-            # 3. Novedades del mes (Licencias, Vacaciones, Sanciones, Inasistencias)
+            # 4. Novedades del mes (Licencias, Vacaciones, Sanciones, Inasistencias)
             cur.execute("SELECT id_empleado, fecha_inicio, fecha_termino FROM reporte_licencias WHERE id_reporte = ?", (id_reporte,))
             licencias = cur.fetchall()
 
@@ -82,14 +88,31 @@ class CompensacionService:
             cur.execute("SELECT id_empleado, fechas_detalle FROM reporte_inasistencias WHERE id_reporte = ?", (id_reporte,))
             inasistencias = cur.fetchall()
 
-            # Compensaciones ya gozadas en este mes
-            cur.execute("SELECT id_empleado, fecha_compensacion FROM solicitudes_compensacion WHERE strftime('%Y-%m', fecha_compensacion) = ?", (f"{anio}-{mes:02d}",))
+            # Compensaciones gozadas
+            cur.execute("""
+                SELECT id_empleado, fecha_compensacion, fechas_compensacion_detalle 
+                FROM solicitudes_compensacion 
+                WHERE anio_goce = ? AND mes = ? AND estado = 'APROBADO'
+            """, (anio, mes))
             compensaciones_gozadas = cur.fetchall()
 
+            # Rotaciones registradas en este mes o previas
+            cur.execute("""
+                SELECT id_empleado, grupo_origen, grupo_destino, fecha_rotacion, modalidad_dia_cambio, numero_memorando
+                FROM rotaciones_grupo_guardia
+                WHERE anio = ? AND mes <= ?
+                ORDER BY fecha_rotacion ASC
+            """, (anio, mes))
+            rotaciones_todas = cur.fetchall()
+            rotaciones_por_emp = {}
+            for rot in rotaciones_todas:
+                emp_id = rot["id_empleado"]
+                if emp_id not in rotaciones_por_emp:
+                    rotaciones_por_emp[emp_id] = []
+                rotaciones_por_emp[emp_id].append(dict(rot))
+
             # Mapear novedades por empleado y día
-            novedades_map = {}
-            for p in personal:
-                novedades_map[p["id_empleado"]] = {}
+            novedades_map = {p["id_empleado"]: {} for p in personal}
 
             for lic in licencias:
                 emp_id = lic["id_empleado"]
@@ -136,7 +159,6 @@ class CompensacionService:
             for inas in inasistencias:
                 emp_id = inas["id_empleado"]
                 if emp_id in novedades_map and inas["fechas_detalle"]:
-                    # fechas_detalle puede ser '2,3,4,16,17'
                     partes = str(inas["fechas_detalle"]).replace(" y ", ",").split(",")
                     for pt in partes:
                         pt = pt.strip()
@@ -147,15 +169,26 @@ class CompensacionService:
 
             for comp in compensaciones_gozadas:
                 emp_id = comp["id_empleado"]
-                if emp_id in novedades_map and comp["fecha_compensacion"]:
-                    try:
-                        d_obj = datetime.strptime(comp["fecha_compensacion"], "%Y-%m-%d").date()
-                        if d_obj.year == anio and d_obj.month == mes:
-                            novedades_map[emp_id][d_obj.day] = "C"
-                    except Exception:
-                        pass
+                if emp_id in novedades_map:
+                    # fecha individual
+                    if comp["fecha_compensacion"]:
+                        try:
+                            d_obj = datetime.strptime(comp["fecha_compensacion"], "%Y-%m-%d").date()
+                            if d_obj.year == anio and d_obj.month == mes:
+                                novedades_map[emp_id][d_obj.day] = "C"
+                        except Exception:
+                            pass
+                    # fechas detalle si eran múltiples
+                    if comp.get("fechas_compensacion_detalle"):
+                        for f_str in comp["fechas_compensacion_detalle"].split(","):
+                            try:
+                                d_obj = datetime.strptime(f_str.strip(), "%Y-%m-%d").date()
+                                if d_obj.year == anio and d_obj.month == mes:
+                                    novedades_map[emp_id][d_obj.day] = "C"
+                            except Exception:
+                                pass
 
-            # 4. Obtener si ya había datos guardados en compensacion_dias_ganados
+            # 5. Obtener días ya guardados en la BD
             cur.execute("""
                 SELECT id_empleado, grupo_guardia, dias_exceso, detalle_dias, observaciones
                 FROM compensacion_dias_ganados
@@ -163,67 +196,126 @@ class CompensacionService:
             """, (anio, mes))
             guardados_map = {r["id_empleado"]: dict(r) for r in cur.fetchall()}
 
-            # 5. Calcular para cada servidor
-            resultado_empleados = []
+            # 6. Agrupación y cálculo
+            grupos_dict = {
+                1: {"id_grupo": 1, "nombre": "Grupo 1", "alcaide": alcaides_map.get(1, {}), "empleados": []},
+                2: {"id_grupo": 2, "nombre": "Grupo 2", "alcaide": alcaides_map.get(2, {}), "empleados": []},
+                3: {"id_grupo": 3, "nombre": "Grupo 3", "alcaide": alcaides_map.get(3, {}), "empleados": []}
+            }
+
             total_exceso_mes = 0
 
-            for idx, emp in enumerate(personal):
+            for emp in personal:
                 emp_id = emp["id_empleado"]
                 rec_guardado = guardados_map.get(emp_id)
 
-                # Grupo de guardia: G1, G2, o G3 (rotativo por defecto si no está definido)
+                # Determinar grupo base del servidor
+                g_base_id = emp.get("grupo_guardia_default", 1) or 1
                 if rec_guardado and rec_guardado.get("grupo_guardia"):
-                    grupo = rec_guardado["grupo_guardia"]
-                else:
-                    grupo_idx = (idx % 3) + 1
-                    grupo = f"G{grupo_idx}"
-
-                offset_grupo = {"G1": 0, "G2": 1, "G3": 2}.get(grupo, 0)
-
-                # Si ya tenía detalle_dias en base de datos, lo cargamos
-                detalle_existente = {}
-                if rec_guardado and rec_guardado.get("detalle_dias"):
                     try:
-                        detalle_existente = json.loads(rec_guardado["detalle_dias"])
+                        g_str = str(rec_guardado["grupo_guardia"])
+                        if "1" in g_str: g_base_id = 1
+                        elif "2" in g_str: g_base_id = 2
+                        elif "3" in g_str: g_base_id = 3
                     except Exception:
                         pass
 
-                # Malla de días 1..num_dias
-                dias_calculados = {}
-                for d in range(1, num_dias + 1):
-                    # Si ya tenía valor manual asignado en la BD
-                    if str(d) in detalle_existente:
-                        dias_calculados[d] = detalle_existente[str(d)]
-                    # Si tiene novedad en asistencia
-                    elif d in novedades_map[emp_id]:
-                        dias_calculados[d] = novedades_map[emp_id][d]
-                    # Rol ordinario 24x48: trabaja si (d - 1 - offset) % 3 == 0
-                    elif ((d - 1 - offset_grupo) % 3) == 0:
-                        dias_calculados[d] = "24"
-                    else:
-                        dias_calculados[d] = "D"
+                # Mapear rotaciones que afectan este mes
+                rot_mes = None
+                rotaciones_emp = rotaciones_por_emp.get(emp_id, [])
+                for r in rotaciones_emp:
+                    r_fecha = datetime.strptime(r["fecha_rotacion"], "%Y-%m-%d").date()
+                    if r_fecha.year == anio and r_fecha.month == mes:
+                        rot_mes = r
+                        break
 
-                # 6. Cálculo de exceso por SEMANAS (Lunes a Domingo)
-                # Evaluamos semana a semana conforme al numeral 4.10
+                # Función auxiliar para determinar la marca de cualquier fecha (incluso del mes anterior)
+                fecha_base_anual = date(anio, 1, 1)
+
+                def obtener_marca_dia_especifico(f_obj: date) -> str:
+                    # 1. Novedades registradas si es del mes actual
+                    if f_obj.year == anio and f_obj.month == mes and f_obj.day in novedades_map.get(emp_id, {}):
+                        return novedades_map[emp_id][f_obj.day]
+
+                    # 2. Rotaciones aplicables a esta fecha
+                    g_activo = g_base_id
+                    rot_aplicable = None
+                    for r in rotaciones_emp:
+                        r_f = datetime.strptime(r["fecha_rotacion"], "%Y-%m-%d").date()
+                        if r_f <= f_obj:
+                            rot_aplicable = r
+
+                    if rot_aplicable:
+                        r_f = datetime.strptime(rot_aplicable["fecha_rotacion"], "%Y-%m-%d").date()
+                        if f_obj == r_f:
+                            if rot_aplicable["modalidad_dia_cambio"] == "ADMINISTRATIVO_5PM":
+                                return "5P"
+                            else:
+                                return "24"
+                        elif f_obj > r_f:
+                            g_activo = 1 if "1" in rot_aplicable["grupo_destino"] else (2 if "2" in rot_aplicable["grupo_destino"] else 3)
+                        else:
+                            g_activo = 1 if "1" in rot_aplicable["grupo_origen"] else (2 if "2" in rot_aplicable["grupo_origen"] else 3)
+
+                    # 3. Ciclo 24x48 continuo en el año fiscal
+                    delta = (f_obj - fecha_base_anual).days
+                    offset = g_activo - 1
+                    if ((delta - offset) % 3) == 0:
+                        return "24"
+                    return "D"
+
+                dias_calculados = {}
+                memo_rotacion_texto = ""
+
+                # Generar marcas de todos los días del mes actual
+                for d in range(1, num_dias + 1):
+                    fecha_dia = date(anio, mes, d)
+                    dias_calculados[d] = obtener_marca_dia_especifico(fecha_dia)
+
+                if rot_mes:
+                    memo_rotacion_texto = f"Rotación: {rot_mes['numero_memorando']} ({rot_mes['modalidad_dia_cambio']})"
+
+                # 7. Evaluar semanas (Lunes a Domingo) para exceso conforme a Directiva DI-003-2023
+                # Regla: Las semanas se evalúan estrictamente de Lunes a Domingo (7 días).
+                # Cuando la semana cierra en Domingo en este mes, se revisan los 7 días naturales
+                # (incluyendo los días del mes anterior si la semana comenzó a fines del mes previo).
+                # Si en esos 7 días acumuló 3 turnos de 24h, el Domingo es el 3er turno y suma +1 día de exceso a este mes.
+                # Si la semana comenzó en este mes pero su Domingo cae en el mes siguiente, suma al mes siguiente.
                 dias_exceso_trabajador = 0
                 semanas_detalle = []
 
                 for sem in calendario["semanas"]:
                     dias_sem = sem["dias"]
-                    turnos_24_sem = 0
                     dias_sem_info = []
 
+                    # Verificar si la semana termina en Domingo dentro del mes
+                    termina_en_domingo = (dias_sem[-1]["weekday"] == 6)
+
+                    # Si termina en domingo, evaluamos los 7 días (Lunes a Domingo) de esta semana
+                    turnos_24_sem = 0
+                    if termina_en_domingo:
+                        domingo_dia = dias_sem[-1]["dia"]
+                        fecha_dom = date(anio, mes, domingo_dia)
+                        fecha_lun = fecha_dom - timedelta(days=6)
+
+                        # Contar turnos 24 en los 7 días naturales
+                        curr_f = fecha_lun
+                        while curr_f <= fecha_dom:
+                            m_dia = obtener_marca_dia_especifico(curr_f)
+                            if m_dia == "24":
+                                turnos_24_sem += 1
+                            curr_f += timedelta(days=1)
+
+                    # Mapear celdas de la semana para la vista Anexo 02
                     for d_info in dias_sem:
                         dia_num = d_info["dia"]
                         marca = dias_calculados.get(dia_num, "D")
                         es_turno_exceso = False
 
-                        if marca == "24":
-                            turnos_24_sem += 1
-                            # Si es el 3er turno de 24h dentro de la misma semana de Lunes a Domingo
-                            if turnos_24_sem >= 3:
-                                es_turno_exceso = True
-                                dias_exceso_trabajador += 1
+                        # El Domingo que completa los 3 turnos se resalta como turno en exceso
+                        if d_info["weekday"] == 6 and marca == "24" and turnos_24_sem >= 3:
+                            es_turno_exceso = True
+                            dias_exceso_trabajador += 1
 
                         dias_sem_info.append({
                             "dia": dia_num,
@@ -240,184 +332,98 @@ class CompensacionService:
 
                 total_exceso_mes += dias_exceso_trabajador
 
-                resultado_empleados.append({
+                emp_data = {
                     "id_empleado": emp_id,
                     "codigo_servidor": emp["codigo_servidor"],
                     "dni": emp["dni"],
                     "apellidos_nombres": emp["apellidos_nombres"],
                     "regimen_nombre": emp["regimen_nombre"],
                     "cargo_funcion": emp["cargo_funcion"],
-                    "grupo_guardia": grupo,
+                    "grupo_id": g_base_id,
+                    "grupo_nombre": f"Grupo {g_base_id}",
                     "dias_calculados": dias_calculados,
                     "semanas_detalle": semanas_detalle,
                     "dias_exceso": dias_exceso_trabajador,
+                    "rotacion_memo": memo_rotacion_texto,
                     "observaciones": rec_guardado.get("observaciones", "") if rec_guardado else ""
-                })
+                }
+
+                if g_base_id in grupos_dict:
+                    grupos_dict[g_base_id]["empleados"].append(emp_data)
+                else:
+                    grupos_dict[1]["empleados"].append(emp_data)
+
+            lista_grupos = [grupos_dict[1], grupos_dict[2], grupos_dict[3]]
 
             return {
                 "anio": anio,
                 "mes": mes,
                 "calendario": calendario,
-                "empleados": resultado_empleados,
+                "grupos": lista_grupos,
                 "total_exceso_mes": total_exceso_mes,
-                "total_empleados": len(resultado_empleados)
+                "total_empleados": len(personal)
             }
 
     @staticmethod
-    def guardar_anexo2_en_db(anio: int, mes: int, lista_empleados: List[Dict[str, Any]]) -> bool:
-        """
-        Persiste el Anexo 02 en la base de datos y actualiza los días de exceso
-        para que se reflejen en la columna correspondiente del Anexo 03.
-        """
+    def guardar_anexo2_en_db(anio: int, mes: int, lista_grupos: List[Dict[str, Any]]) -> bool:
         with get_connection() as conn:
             cur = conn.cursor()
-            for item in lista_empleados:
-                emp_id = item["id_empleado"]
-                dias_exceso = item.get("dias_exceso", 0)
-                grupo = item.get("grupo_guardia", "G1")
-                detalle_dias = json.dumps(item.get("dias_calculados", {}))
-                obs = item.get("observaciones", "")
+            for g in lista_grupos:
+                g_nombre = g["nombre"]
+                for emp in g["empleados"]:
+                    emp_id = emp["id_empleado"]
+                    dias_exceso = emp.get("dias_exceso", 0)
+                    detalle_dias = json.dumps(emp.get("dias_calculados", {}))
+                    obs = emp.get("rotacion_memo", "") or emp.get("observaciones", "")
 
-                cur.execute("""
-                    INSERT INTO compensacion_dias_ganados (
-                        anio, mes, id_empleado, dias_exceso, grupo_guardia, detalle_dias, observaciones
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(anio, mes, id_empleado) DO UPDATE SET
-                        dias_exceso = excluded.dias_exceso,
-                        grupo_guardia = excluded.grupo_guardia,
-                        detalle_dias = excluded.detalle_dias,
-                        observaciones = excluded.observaciones
-                """, (anio, mes, emp_id, dias_exceso, grupo, detalle_dias, obs))
+                    cur.execute("""
+                        INSERT INTO compensacion_dias_ganados (
+                            anio, mes, id_empleado, dias_exceso, grupo_guardia, detalle_dias, observaciones
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(anio, mes, id_empleado) DO UPDATE SET
+                            dias_exceso = excluded.dias_exceso,
+                            grupo_guardia = excluded.grupo_guardia,
+                            detalle_dias = excluded.detalle_dias,
+                            observaciones = excluded.observaciones
+                    """, (anio, mes, emp_id, dias_exceso, g_nombre, detalle_dias, obs))
 
             conn.commit()
             return True
 
     @staticmethod
-    def registrar_goce_manual(
+    def registrar_solicitud_compensacion(
         id_empleado: int,
+        anio_goce: int,
+        mes: int,
+        fecha_solicitud: str,
         fecha_compensacion: str,
-        fecha_solicitud: str = None,
+        dias_solicitados: int,
+        fechas_compensacion_detalle: str = "",
         numero_solicitud: str = "",
         observaciones: str = ""
     ) -> Dict[str, Any]:
         """
-        Registra la compensación de 24 horas solicitada en físico/manual
-        (Anexo 01) y descuenta 1 día del saldo disponible del servidor.
+        Registra la solicitud formal de compensación (1 o varios días/turnos)
+        y descuenta del saldo reconocido del servidor.
         """
         try:
             d_comp = datetime.strptime(fecha_compensacion, "%Y-%m-%d").date()
-            if fecha_solicitud:
-                d_sol = datetime.strptime(fecha_solicitud, "%Y-%m-%d").date()
-            else:
-                d_sol = date.today()
-                fecha_solicitud = d_sol.isoformat()
+            if not fecha_solicitud:
+                fecha_solicitud = date.today().isoformat()
         except ValueError:
-            return {"success": False, "message": "Formato de fechas incorrecto (debe ser YYYY-MM-DD)."}
+            return {"success": False, "message": "Formato de fecha inválido (debe ser YYYY-MM-DD)."}
 
-        anio_goce = d_comp.year
-        mes = d_comp.month
+        if not fechas_compensacion_detalle:
+            fechas_compensacion_detalle = fecha_compensacion
 
-        with get_connection() as conn:
-            cur = conn.cursor()
-
-            # Verificar saldo
-            cur.execute("""
-                SELECT dias_asignados, dias_utilizados, dias_disponibles
-                FROM saldos_compensacion
-                WHERE id_empleado = ? AND anio_goce = ?
-            """, (id_empleado, anio_goce))
-            saldo = cur.fetchone()
-
-            if not saldo:
-                # Inicializar con 16 días por defecto según lineamiento
-                cur.execute("""
-                    INSERT INTO saldos_compensacion (id_empleado, anio_goce, dias_asignados, dias_utilizados, dias_disponibles)
-                    VALUES (?, ?, 16, 0, 16)
-                """, (id_empleado, anio_goce))
-                dias_disponibles = 16
-            else:
-                dias_disponibles = saldo["dias_disponibles"]
-
-            if dias_disponibles <= 0:
-                return {
-                    "success": False,
-                    "message": f"El servidor no cuenta con días disponibles de compensación para el año {anio_goce} (Saldo agotado: 0 días)."
-                }
-
-            # Verificar que no exista ya registro en la misma fecha
-            cur.execute("""
-                SELECT id_solicitud FROM solicitudes_compensacion
-                WHERE id_empleado = ? AND fecha_compensacion = ? AND estado != 'RECHAZADO'
-            """, (id_empleado, fecha_compensacion))
-            if cur.fetchone():
-                return {
-                    "success": False,
-                    "message": f"El servidor ya tiene una compensación registrada en la fecha {fecha_compensacion}."
-                }
-
-            # Insertar solicitud
-            cur.execute("""
-                INSERT INTO solicitudes_compensacion (
-                    id_empleado, anio_goce, mes, fecha_solicitud, fecha_compensacion,
-                    dias_compensados, numero_solicitud, jefe_inmediato, especialista_personal,
-                    estado, observaciones
-                ) VALUES (?, ?, ?, ?, ?, 1, ?, 'AUTORIZADO', 'CONFORME', 'APROBADO', ?)
-            """, (
-                id_empleado, anio_goce, mes, fecha_solicitud, fecha_compensacion,
-                numero_solicitud or f"Solicitud Anexo 01 - {fecha_compensacion}",
-                observaciones
-            ))
-            id_sol = cur.lastrowid
-
-            # Actualizar saldos
-            cur.execute("""
-                UPDATE saldos_compensacion
-                SET dias_utilizados = dias_utilizados + 1,
-                    dias_disponibles = dias_disponibles - 1
-                WHERE id_empleado = ? AND anio_goce = ?
-            """, (id_empleado, anio_goce))
-
-            conn.commit()
-
-            # Obtener saldo actualizado
-            cur.execute("SELECT dias_asignados, dias_utilizados, dias_disponibles FROM saldos_compensacion WHERE id_empleado = ? AND anio_goce = ?", (id_empleado, anio_goce))
-            s_up = cur.fetchone()
-
-            return {
-                "success": True,
-                "id_solicitud": id_sol,
-                "dias_usados": s_up["dias_utilizados"],
-                "dias_restantes": s_up["dias_disponibles"],
-                "message": f"Compensación del día {fecha_compensacion} registrada exitosamente. Días usados: {s_up['dias_utilizados']}, Le quedan: {s_up['dias_disponibles']} días."
-            }
-
-    @staticmethod
-    def eliminar_goce_manual(id_solicitud: int) -> Dict[str, Any]:
-        """
-        Elimina un registro de compensación manual y reintegra el día al saldo del servidor.
-        """
-        with get_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT id_empleado, anio_goce, fecha_compensacion 
-                FROM solicitudes_compensacion WHERE id_solicitud = ?
-            """, (id_solicitud,))
-            sol = cur.fetchone()
-            if not sol:
-                return {"success": False, "message": "Registro no encontrado."}
-
-            emp_id = sol["id_empleado"]
-            anio_goce = sol["anio_goce"]
-
-            cur.execute("DELETE FROM solicitudes_compensacion WHERE id_solicitud = ?", (id_solicitud,))
-
-            # Reintegrar día
-            cur.execute("""
-                UPDATE saldos_compensacion
-                SET dias_utilizados = max(0, dias_utilizados - 1),
-                    dias_disponibles = min(dias_asignados, dias_disponibles + 1)
-                WHERE id_empleado = ? AND anio_goce = ?
-            """, (emp_id, anio_goce))
-
-            conn.commit()
-            return {"success": True, "message": f"Registro eliminado. El día ha sido reintegrado al saldo disponible del servidor."}
+        return CompensacionRepository.registrar_solicitud_compensacion(
+            id_empleado=id_empleado,
+            anio_goce=anio_goce,
+            mes=mes,
+            fecha_solicitud=fecha_solicitud,
+            fecha_compensacion=fecha_compensacion,
+            dias_solicitados=dias_solicitados,
+            fechas_compensacion_detalle=fechas_compensacion_detalle,
+            numero_solicitud=numero_solicitud,
+            observaciones=observaciones
+        )
