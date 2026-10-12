@@ -1,89 +1,244 @@
 {% extends "base.html" %}
 
-{% block title %}Compensación 24x48 - Anexo 03 Reporte Mensualizado | INPE{% endblock %}
+{% block title %}Compensación 24x48 - Anexo 02, Anexo 03 y Control de Saldos | INPE{% endblock %}
 {% block header_title %}Módulo de Compensación de Jornada Laboral 24x48 (LI-001-2023-INPE-OGA){% endblock %}
 
 {% block content %}
 <style>
+    /* Estilos de pestañas internas */
+    .comp-tabs-nav {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+    }
+    .comp-tab-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        color: var(--text-muted);
+        padding: 0.7rem 1.2rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+    .comp-tab-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .comp-tab-btn.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+
+    /* Celdas Anexo 03 */
     .cell-mes {
-        padding: 0.5rem 0.3rem;
+        padding: 0.55rem 0.3rem;
         font-weight: 700;
+        font-size: 0.8rem;
     }
     .cell-mes-active {
         color: #38bdf8;
+        background: rgba(56, 189, 248, 0.08);
+        border-radius: 4px;
     }
     .cell-mes-empty {
         color: #475569;
     }
+
+    /* Celdas Anexo 02 */
+    .anexo2-cell {
+        padding: 0.4rem 0.2rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-align: center;
+        min-width: 28px;
+    }
+    .cell-24-regular {
+        color: #60a5fa;
+        background: rgba(59, 130, 246, 0.12);
+        border-radius: 3px;
+    }
+    .cell-24-exceso {
+        color: #fef08a;
+        background: linear-gradient(135deg, #eab308, #ca8a04);
+        color: #000;
+        font-weight: 800;
+        border-radius: 4px;
+        box-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
+    }
+    .cell-descanso {
+        color: #64748b;
+    }
+    .cell-vacaciones {
+        color: #34d399;
+        background: rgba(16, 185, 129, 0.15);
+        border-radius: 3px;
+    }
+    .cell-licencia {
+        color: #fbbf24;
+        background: rgba(245, 158, 11, 0.15);
+        border-radius: 3px;
+    }
+    .cell-inasistencia {
+        color: #f87171;
+        background: rgba(239, 68, 68, 0.2);
+        border-radius: 3px;
+    }
+    .cell-sancion {
+        color: #c084fc;
+        background: rgba(168, 85, 247, 0.2);
+        border-radius: 3px;
+    }
+    .cell-compensado {
+        color: #a78bfa;
+        background: rgba(139, 92, 246, 0.2);
+        border-radius: 3px;
+    }
+
+    /* Badges de saldo */
+    .badge-saldo-ok {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+    .badge-saldo-warning {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+    .badge-saldo-cero {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    /* Modal emergente */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        width: 100%;
+        max-width: 540px;
+        padding: 1.75rem;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        animation: fadeIn 0.2s ease;
+    }
 </style>
+
 <div style="display: flex; flex-direction: column; gap: 1.5rem;">
 
-    <!-- BANNER NORMATIVO INSTITUCIONAL -->
-    <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+    <!-- NOTIFICACIONES Y MENSAJES -->
+    {% if mensaje %}
+    <div class="alert-toast alert-success" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #fff; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.4rem; color: #34d399;"></i>
         <div>
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+            <div style="font-weight: 700;">¡Operación Exitosa!</div>
+            <div style="font-size: 0.85rem; color: #cbd5e1;">{{ mensaje }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert-toast alert-error" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fff; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.4rem; color: #f87171;"></i>
+        <div>
+            <div style="font-weight: 700;">Atención / Error</div>
+            <div style="font-size: 0.85rem; color: #cbd5e1;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- BANNER INSTITUCIONAL NORMATIVO -->
+    <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
                 <span style="background: #3b82f6; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 6px;">RD N° 146-2023-INPE/OGA</span>
                 <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">Lineamiento LI-001-2023</span>
                 <span style="color: var(--text-muted); font-size: 0.85rem;">Directiva DI-003-2023-INPE-OGA (Num. 6.4)</span>
             </div>
-            <h2 style="font-size: 1.4rem; font-weight: 700; color: #fff; margin: 0 0 0.25rem 0;">Control Anualizado de Compensación de Días (Jornada 24x48)</h2>
+            <h2 style="font-size: 1.35rem; font-weight: 700; color: #fff; margin: 0 0 0.25rem 0;">Sistema de Compensación de Jornada 24x48 - Seguridad Penitenciaria</h2>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
-                Establecimiento Penitenciario Mujeres Iquitos (722) &bull; Máximo computable: <strong>16 días de 24 horas por año fiscal</strong> (No fraccionables).
+                EP Mujeres Iquitos (UBIC 722) &bull; Tope anual computable: <strong>16 días de 24 horas</strong>. Días no fraccionables que se efectivizan al año siguiente.
             </p>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
-            <a href="/compensacion/solicitud" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; text-decoration: none; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-                <i class="fa-solid fa-file-circle-plus"></i> Nueva Solicitud (Anexo 01)
-            </a>
-            <a href="/compensacion/solicitudes" style="background: rgba(255, 255, 255, 0.05); color: #e2e8f0; border: 1px solid var(--border-color); text-decoration: none; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
-                <i class="fa-solid fa-list-check"></i> Historial de Solicitudes
-            </a>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <button onclick="abrirModalRegistrarUso()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+                <i class="fa-solid fa-file-circle-check"></i> + Registrar Uso de Día (Papeleta Manual)
+            </button>
         </div>
     </div>
 
-    <!-- TARJETAS DE INDICADORES -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
-        <div class="glass-card" style="padding: 1.25rem;">
-            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Servidores con 24x48</div>
-            <div style="font-size: 1.8rem; font-weight: 800; color: #60a5fa; margin-top: 0.25rem;">{{ total_servidores }}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Personal de Seguridad</div>
-        </div>
-        <div class="glass-card" style="padding: 1.25rem;">
-            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Días Asignados Totales</div>
-            <div style="font-size: 1.8rem; font-weight: 800; color: #a78bfa; margin-top: 0.25rem;">{{ total_asignados }}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Topes por RD Anual</div>
-        </div>
-        <div class="glass-card" style="padding: 1.25rem;">
-            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Días Compensados 2026</div>
-            <div style="font-size: 1.8rem; font-weight: 800; color: #34d399; margin-top: 0.25rem;">{{ total_consumidos }}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Jornadas de 24h Gozadas</div>
-        </div>
-        <div class="glass-card" style="padding: 1.25rem;">
-            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Saldo Pendiente Global</div>
-            <div style="font-size: 1.8rem; font-weight: 800; color: #f59e0b; margin-top: 0.25rem;">{{ total_pendientes }}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Por compensar en 2026</div>
-        </div>
+    <!-- PESTAÑAS PRINCIPALES DEL MÓDULO -->
+    <div class="comp-tabs-nav">
+        <a href="/compensacion?tab=anexo3&anio={{ anio }}" class="comp-tab-btn {% if tab == 'anexo3' %}active{% endif %}">
+            <i class="fa-solid fa-table-cells"></i> 1. Anexo 03: Días Ganados (Reporte Anual)
+        </a>
+        <a href="/compensacion?tab=anexo2&anio={{ anio }}&mes_anexo2={{ mes_anexo2 }}" class="comp-tab-btn {% if tab == 'anexo2' %}active{% endif %}">
+            <i class="fa-solid fa-calendar-days"></i> 2. Anexo 02: Control Semanal de Exceso (Mes a Mes)
+        </a>
+        <a href="/compensacion?tab=saldos&anio={{ anio }}" class="comp-tab-btn {% if tab == 'saldos' %}active{% endif %}">
+            <i class="fa-solid fa-scale-balanced"></i> 3. Control de Saldos y Días Usados
+        </a>
+        <a href="/compensacion?tab=historial&anio={{ anio }}" class="comp-tab-btn {% if tab == 'historial' %}active{% endif %}">
+            <i class="fa-solid fa-clock-rotate-left"></i> 4. Historial de Papeletas (Anexo 01)
+        </a>
     </div>
 
-    <!-- MATRIZ OFICIAL: ANEXO N° 03 REPORTE MENSUALIZADO -->
+    <!-- ========================================================================================= -->
+    <!-- PESTAÑA 1: ANEXO 03 - REPORTE MENSUALIZADO DE DÍAS GANADOS (OFICIAL) -->
+    <!-- ========================================================================================= -->
+    {% if tab == 'anexo3' %}
     <div class="glass-card" style="padding: 1.5rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
             <div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">FORMATO OFICIAL</span>
-                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">ANEXO 3: REPORTE MENSUALIZADO DE COMPENSACIÓN (AÑO {{ anio }})</h3>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">ANEXO N° 03: REPORTE MENSUALIZADO (AÑO FISCAL {{ anio }})</h3>
                 </div>
                 <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0 0;">
-                    Registro de días gozados por cada servidor mes a mes (24 horas continuas de servicio).
+                    Consolida mes a mes los días de trabajo efectivo en exceso generados en el año (tope 16 días). Servirán para compensar en {{ anio + 1 }}.
                 </p>
             </div>
             
             <div style="display: flex; gap: 0.75rem; align-items: center;">
-                <input type="text" id="filtroCompensacion" placeholder="Buscar por CIP, DNI o Nombres..." 
-                       style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.85rem; color: #fff; font-size: 0.85rem; width: 260px;"
-                       onkeyup="filtrarTabla()">
+                <input type="text" id="filtroAnexo3" placeholder="Buscar por CIP, DNI o Nombres..." 
+                       style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.85rem; color: #fff; font-size: 0.85rem; width: 240px;"
+                       onkeyup="filtrarTablaGenerica('tablaAnexo3', this.value)">
                 <button onclick="window.print()" style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid var(--border-color); padding: 0.5rem 0.85rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">
-                    <i class="fa-solid fa-print"></i> Imprimir
+                    <i class="fa-solid fa-print"></i> Imprimir Reporte
                 </button>
             </div>
         </div>
@@ -91,16 +246,17 @@
         <div style="overflow-x: auto;">
             <table id="tablaAnexo3" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: center;">
                 <thead>
-                    <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 0.6rem 0.4rem; text-align: center; width: 35px;">N°</th>
+                    <tr style="background: rgba(15, 23, 42, 0.85); color: #94a3b8; border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 0.6rem 0.4rem; width: 35px;">N°</th>
                         <th style="padding: 0.6rem 0.5rem; text-align: left; width: 65px;">CIP</th>
                         <th style="padding: 0.6rem 0.5rem; text-align: left; width: 75px;">DNI</th>
                         <th style="padding: 0.6rem 0.75rem; text-align: left;">APELLIDOS Y NOMBRES</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; width: 140px;">ESTABLECIMIENTO</th>
                         <th style="padding: 0.6rem 0.5rem; text-align: left; width: 90px;">RÉGIMEN</th>
-                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">ENE</th>
-                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">FEB</th>
-                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">MAR</th>
-                        <th style="padding: 0.6rem 0.3rem; background: rgba(59, 130, 246, 0.1); color: #93c5fd;">ABR</th>
+                        <th style="padding: 0.6rem 0.3rem;">ENE</th>
+                        <th style="padding: 0.6rem 0.3rem;">FEB</th>
+                        <th style="padding: 0.6rem 0.3rem;">MAR</th>
+                        <th style="padding: 0.6rem 0.3rem;">ABR</th>
                         <th style="padding: 0.6rem 0.3rem;">MAY</th>
                         <th style="padding: 0.6rem 0.3rem;">JUN</th>
                         <th style="padding: 0.6rem 0.3rem;">JUL</th>
@@ -109,20 +265,20 @@
                         <th style="padding: 0.6rem 0.3rem;">OCT</th>
                         <th style="padding: 0.6rem 0.3rem;">NOV</th>
                         <th style="padding: 0.6rem 0.3rem;">DIC</th>
-                        <th style="padding: 0.6rem 0.5rem; background: rgba(16, 185, 129, 0.1); color: #34d399; font-weight: 700;">GOZADOS</th>
-                        <th style="padding: 0.6rem 0.5rem; background: rgba(245, 158, 11, 0.1); color: #fbbf24; font-weight: 700;">SALDO</th>
-                        <th style="padding: 0.6rem 0.75rem; text-align: left;">OBSERVACIONES</th>
+                        <th style="padding: 0.6rem 0.6rem; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; font-weight: 800;">TOTAL (MÁX 16)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in matriz %}
+                    {% for row in matriz_anexo3 %}
                     <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
-                        <td style="padding: 0.5rem 0.4rem; color: var(--text-muted);">{{ loop.index }}</td>
-                        <td style="padding: 0.5rem 0.5rem; text-align: left; font-weight: 700; color: #60a5fa;">{{ row.codigo_servidor }}</td>
-                        <td style="padding: 0.5rem 0.5rem; text-align: left; color: #cbd5e1;">{{ row.dni }}</td>
-                        <td style="padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; color: #fff;">{{ row.apellidos_nombres }}</td>
-                        <td style="padding: 0.5rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--text-muted);">{{ row.regimen_nombre or 'Ley N° 29709' }}</td>
-                        
+                        <td style="padding: 0.55rem 0.4rem; color: var(--text-muted);">{{ loop.index }}</td>
+                        <td style="padding: 0.55rem 0.5rem; text-align: left; font-family: monospace; font-weight: 700; color: #93c5fd;">{{ row.codigo_servidor }}</td>
+                        <td style="padding: 0.55rem 0.5rem; text-align: left; font-family: monospace; color: var(--text-muted);">{{ row.dni }}</td>
+                        <td style="padding: 0.55rem 0.75rem; text-align: left; font-weight: 600; color: #fff;">{{ row.apellidos_nombres }}</td>
+                        <td style="padding: 0.55rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--text-muted);">EP MUJERES IQUITOS</td>
+                        <td style="padding: 0.55rem 0.5rem; text-align: left; font-size: 0.75rem;">
+                            <span style="color: #cbd5e1;">{{ row.regimen_nombre }}</span>
+                        </td>
                         <td class="cell-mes {% if row.m_1 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_1 }}</td>
                         <td class="cell-mes {% if row.m_2 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_2 }}</td>
                         <td class="cell-mes {% if row.m_3 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_3 }}</td>
@@ -135,19 +291,14 @@
                         <td class="cell-mes {% if row.m_10 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_10 }}</td>
                         <td class="cell-mes {% if row.m_11 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_11 }}</td>
                         <td class="cell-mes {% if row.m_12 != '-' %}cell-mes-active{% else %}cell-mes-empty{% endif %}">{{ row.m_12 }}</td>
-                        
-                        <td style="padding: 0.5rem 0.5rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.05);">
-                            {{ row.total_utilizado }}
+                        <td style="padding: 0.55rem 0.6rem; font-weight: 800; color: #a5b4fc; background: rgba(99, 102, 241, 0.08); font-size: 0.9rem;">
+                            {{ row.total_ganado }}
                         </td>
-                        <td style="padding: 0.5rem 0.5rem; font-weight: 800; color: #fbbf24; background: rgba(245, 158, 11, 0.05);">
-                            {{ row.saldo_disponible }} / {{ row.dias_asignados }}
-                        </td>
-                        <td style="padding: 0.5rem 0.75rem; text-align: left; font-size: 0.75rem; color: #94a3b8;">
-                            {% if row.obs_saldo %}
-                                <span style="background: rgba(239, 68, 68, 0.15); color: #fca5a5; padding: 0.15rem 0.4rem; border-radius: 4px;">{{ row.obs_saldo }}</span>
-                            {% else %}
-                                -
-                            {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="19" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
+                            No hay servidores registrados en la jornada 24x48 para el año {{ anio }}.
                         </td>
                     </tr>
                     {% endfor %}
@@ -155,16 +306,444 @@
             </table>
         </div>
     </div>
+    {% endif %}
+
+    <!-- ========================================================================================= -->
+    <!-- PESTAÑA 2: ANEXO 02 - CONTROL SEMANAL DE EXCESO DE TRABAJO (MES A MES) -->
+    <!-- ========================================================================================= -->
+    {% if tab == 'anexo2' %}
+    <div class="glass-card" style="padding: 1.5rem;">
+        <!-- SELECTOR DE MES Y BOTÓN DE CÁLCULO -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">ANEXO N° 02</span>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">
+                        REGISTRO PARA EL CONTROL DE DÍAS POR COMPENSAR
+                    </h3>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                    Cómputo semanal de Lunes a Domingo. El 3er turno de 24h en una misma semana genera 1 día de exceso.
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <!-- SELECTOR DE MESES -->
+                <div style="display: flex; gap: 0.3rem; background: rgba(255,255,255,0.05); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                    {% for m_num, m_nombre in meses %}
+                    <a href="/compensacion?tab=anexo2&anio={{ anio }}&mes_anexo2={{ m_num }}" 
+                       style="padding: 0.35rem 0.65rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-decoration: none; color: {% if mes_anexo2 == m_num %}#fff{% else %}var(--text-muted){% endif %}; background: {% if mes_anexo2 == m_num %}var(--primary){% else %}transparent{% endif %};">
+                        {{ m_nombre[:3] }}
+                    </a>
+                    {% endfor %}
+                </div>
+
+                <!-- BOTÓN CALCULAR OFICIAL -->
+                <form action="/compensacion/anexo2/calcular" method="post" style="margin: 0;">
+                    <input type="hidden" name="anio" value="{{ anio }}">
+                    <input type="hidden" name="mes" value="{{ mes_anexo2 }}">
+                    <button type="submit" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-arrows-rotate"></i> Calcular y Sincronizar Mes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- LEYENDA OFICIAL -->
+        <div style="display: flex; gap: 1rem; align-items: center; background: rgba(15, 23, 42, 0.6); padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1rem; flex-wrap: wrap; font-size: 0.75rem;">
+            <span style="font-weight: 700; color: #cbd5e1;">Convenciones:</span>
+            <span><strong style="color: #60a5fa;">24</strong> = Guardia ordinaria (24h)</span>
+            <span><strong style="background: #eab308; color: #000; padding: 0.1rem 0.3rem; border-radius: 3px; font-weight: 800;">24</strong> = 3er turno en exceso (+1 día ganado)</span>
+            <span><strong style="color: #64748b;">D</strong> = Descanso / Franco</span>
+            <span><strong style="color: #34d399;">V</strong> = Vacaciones</span>
+            <span><strong style="color: #fbbf24;">L</strong> = Licencia</span>
+            <span><strong style="color: #f87171;">I</strong> = Inasistencia</span>
+            <span><strong style="color: #a78bfa;">C</strong> = Compensación</span>
+        </div>
+
+        <!-- TABLA ANEXO 02 CON CABECERA DE SEMANAS -->
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: center;">
+                <thead>
+                    <!-- FILA 1: AGRUPACIÓN DE SEMANAS -->
+                    <tr style="background: rgba(15, 23, 42, 0.95); color: #94a3b8; border-bottom: 1px solid var(--border-color);">
+                        <th colspan="4" style="padding: 0.5rem; text-align: left; border-right: 2px solid var(--border-color);">DATOS DEL SERVIDOR PENITENCIARIO</th>
+                        {% for sem in datos_anexo2.calendario.semanas %}
+                        <th colspan="{{ sem.dias|length }}" style="padding: 0.5rem 0.2rem; border-right: 2px solid var(--border-color); background: rgba(30, 41, 59, 0.5); font-weight: 700; color: #a5b4fc;">
+                            SEMANA {{ sem.numero }}
+                        </th>
+                        {% endfor %}
+                        <th style="padding: 0.5rem; background: rgba(234, 179, 8, 0.15); color: #fde047; font-weight: 800;">TOTAL</th>
+                    </tr>
+
+                    <!-- FILA 2: DÍAS DE LA SEMANA (L, M, M, J, V, S, D) -->
+                    <tr style="background: rgba(15, 23, 42, 0.8); color: #cbd5e1; border-bottom: 1px solid var(--border-color); font-size: 0.7rem;">
+                        <th style="padding: 0.4rem; text-align: left; width: 60px;">CIP</th>
+                        <th style="padding: 0.4rem; text-align: left; width: 70px;">DNI</th>
+                        <th style="padding: 0.4rem; text-align: left;">APELLIDOS Y NOMBRES</th>
+                        <th style="padding: 0.4rem; text-align: left; width: 80px; border-right: 2px solid var(--border-color);">RÉGIMEN</th>
+                        {% for d_info in datos_anexo2.calendario.dias %}
+                        <th style="padding: 0.3rem 0.1rem; {% if d_info.weekday == 6 %}border-right: 2px solid var(--border-color);{% endif %} color: {% if d_info.weekday in [5,6] %}#f87171{% else %}#94a3b8{% endif %};">
+                            {{ d_info.dia_letra }}
+                        </th>
+                        {% endfor %}
+                        <th style="padding: 0.4rem; background: rgba(234, 179, 8, 0.15); color: #fde047;">EXCESO</th>
+                    </tr>
+
+                    <!-- FILA 3: NÚMEROS DE DÍA (1..31) -->
+                    <tr style="background: rgba(15, 23, 42, 0.7); color: #64748b; border-bottom: 2px solid var(--border-color); font-size: 0.65rem;">
+                        <th colspan="4" style="border-right: 2px solid var(--border-color);"></th>
+                        {% for d_info in datos_anexo2.calendario.dias %}
+                        <th style="padding: 0.2rem 0.1rem; {% if d_info.weekday == 6 %}border-right: 2px solid var(--border-color);{% endif %}">
+                            {{ d_info.dia }}
+                        </th>
+                        {% endfor %}
+                        <th style="background: rgba(234, 179, 8, 0.15);">DÍAS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in datos_anexo2.empleados %}
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 0.45rem 0.4rem; text-align: left; font-family: monospace; font-weight: 700; color: #93c5fd;">{{ emp.codigo_servidor }}</td>
+                        <td style="padding: 0.45rem 0.4rem; text-align: left; font-family: monospace; color: var(--text-muted);">{{ emp.dni }}</td>
+                        <td style="padding: 0.45rem 0.5rem; text-align: left; font-weight: 600; color: #fff;">{{ emp.apellidos_nombres }}</td>
+                        <td style="padding: 0.45rem 0.4rem; text-align: left; border-right: 2px solid var(--border-color); font-size: 0.7rem; color: var(--text-muted);">{{ emp.regimen_nombre }}</td>
+
+                        <!-- CELDAS DE CADA SEMANA Y DÍA -->
+                        {% for sem in emp.semanas_detalle %}
+                            {% for d_celda in sem.dias %}
+                            <td class="anexo2-cell {% if d_celda.es_exceso %}cell-24-exceso{% elif d_celda.marca == '24' %}cell-24-regular{% elif d_celda.marca == 'V' %}cell-vacaciones{% elif d_celda.marca == 'L' %}cell-licencia{% elif d_celda.marca == 'I' %}cell-inasistencia{% elif d_celda.marca == 'S' %}cell-sancion{% elif d_celda.marca == 'C' %}cell-compensado{% else %}cell-descanso{% endif %}" 
+                                {% if loop.last %}style="border-right: 2px solid var(--border-color);"{% endif %}>
+                                {{ d_celda.marca }}
+                            </td>
+                            {% endfor %}
+                        {% endfor %}
+
+                        <td style="padding: 0.45rem; font-weight: 800; color: #fde047; background: rgba(234, 179, 8, 0.1); font-size: 0.85rem;">
+                            {{ emp.dias_exceso }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="40" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
+                            No hay datos generados para el mes {{ mes_anexo2 }}. Haz clic en "Calcular y Sincronizar Mes" para procesar automáticamente la asistencia.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================================================================================= -->
+    <!-- PESTAÑA 3: CONTROL DE SALDOS Y DÍAS USADOS (GOCE DE COMPENSACIÓN) -->
+    <!-- ========================================================================================= -->
+    {% if tab == 'saldos' %}
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+        <!-- TARJETAS DE INDICADORES DE SALDO -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div class="glass-card" style="padding: 1.25rem;">
+                <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Días Asignados Totales</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: #60a5fa; margin-top: 0.25rem;">{{ total_asignados }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Tope de 16 días por servidor</div>
+            </div>
+            <div class="glass-card" style="padding: 1.25rem;">
+                <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Días Ya Usados (Gozados)</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: #a78bfa; margin-top: 0.25rem;">{{ total_usados }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Compensaciones de 24h ejecutadas</div>
+            </div>
+            <div class="glass-card" style="padding: 1.25rem;">
+                <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Días Restantes Disponibles</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: #34d399; margin-top: 0.25rem;">{{ total_restantes }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Saldo pendiente por consumir</div>
+            </div>
+        </div>
+
+        <!-- TABLA DE CONTROL DE SALDOS POR TRABAJADOR -->
+        <div class="glass-card" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">CONTROL INDIVIDUAL DE SALDOS Y GOCE</h3>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                        Registra de uno en uno las papeletas físicas presentadas por el personal y monitorea cuántos días le quedan a cada servidor.
+                    </p>
+                </div>
+                <div>
+                    <input type="text" placeholder="Buscar servidor por CIP, DNI o Nombres..." 
+                           style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.85rem; color: #fff; font-size: 0.85rem; width: 260px;"
+                           onkeyup="filtrarTablaGenerica('tablaSaldosComp', this.value)">
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="tablaSaldosComp" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color);">
+                            <th style="padding: 0.65rem 0.5rem; text-align: left; width: 65px;">CIP</th>
+                            <th style="padding: 0.65rem 0.5rem; text-align: left; width: 75px;">DNI</th>
+                            <th style="padding: 0.65rem 0.75rem; text-align: left;">APELLIDOS Y NOMBRES</th>
+                            <th style="padding: 0.65rem 0.5rem; text-align: left; width: 90px;">RÉGIMEN</th>
+                            <th style="padding: 0.65rem 0.5rem; text-align: center; width: 90px;">ASIGNADOS</th>
+                            <th style="padding: 0.65rem 0.5rem; text-align: center; width: 90px;">USADOS</th>
+                            <th style="padding: 0.65rem 0.5rem; text-align: center; width: 120px;">RESTANTES</th>
+                            <th style="padding: 0.65rem 0.75rem; text-align: left;">FECHAS DE DÍAS YA USADOS</th>
+                            <th style="padding: 0.65rem 0.5rem; text-align: center; width: 130px;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in saldos %}
+                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 0.6rem 0.5rem; font-family: monospace; font-weight: 700; color: #93c5fd;">{{ s.codigo_servidor }}</td>
+                            <td style="padding: 0.6rem 0.5rem; font-family: monospace; color: var(--text-muted);">{{ s.dni }}</td>
+                            <td style="padding: 0.6rem 0.75rem; font-weight: 600; color: #fff;">{{ s.apellidos_nombres }}</td>
+                            <td style="padding: 0.6rem 0.5rem; font-size: 0.75rem; color: var(--text-muted);">{{ s.regimen_nombre }}</td>
+                            <td style="padding: 0.6rem 0.5rem; text-align: center; font-weight: 700; color: #cbd5e1;">{{ s.dias_asignados }}</td>
+                            <td style="padding: 0.6rem 0.5rem; text-align: center; font-weight: 700; color: #a78bfa;">{{ s.dias_utilizados }}</td>
+                            <td style="padding: 0.6rem 0.5rem; text-align: center;">
+                                <span class="{% if s.dias_disponibles > 5 %}badge-saldo-ok{% elif s.dias_disponibles > 0 %}badge-saldo-warning{% else %}badge-saldo-cero{% endif %}">
+                                    {{ s.dias_disponibles }} días
+                                </span>
+                            </td>
+                            <td style="padding: 0.6rem 0.75rem;">
+                                {% if s.historial_fechas %}
+                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                    {% for uso in s.historial_fechas %}
+                                    <span style="background: rgba(139, 92, 246, 0.15); color: #c4b5fd; padding: 0.15rem 0.45rem; border-radius: 4px; font-size: 0.75rem; border: 1px solid rgba(139, 92, 246, 0.3);">
+                                        {{ uso.fecha_compensacion }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span style="color: #64748b; font-size: 0.75rem;">Sin usos registrados aún</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.6rem 0.5rem; text-align: center;">
+                                <button onclick="prepararRegistroUso('{{ s.id_empleado }}', '{{ s.apellidos_nombres }}', '{{ s.dias_disponibles }}')" 
+                                        style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
+                                    <i class="fa-solid fa-plus"></i> Registrar Uso
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================================================================================= -->
+    <!-- PESTAÑA 4: HISTORIAL DE PAPELETAS REGISTRADAS (ANEXO 01) -->
+    <!-- ========================================================================================= -->
+    {% if tab == 'historial' %}
+    <div class="glass-card" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">HISTORIAL DE SOLICITUDES Y PAPELETAS MANUALES REGISTRADAS</h3>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                    Registro de cada turno de 24 horas tomado por compensación. Puedes ver la papeleta oficial o anular el registro si hubo un error.
+                </p>
+            </div>
+            <button onclick="abrirModalRegistrarUso()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
+                + Registrar Nueva Papeleta
+            </button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                <thead>
+                    <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 0.6rem 0.5rem; text-align: left;">FECHA COMPENSADA</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left;">CIP</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left;">DNI</th>
+                        <th style="padding: 0.6rem 0.75rem; text-align: left;">SERVIDOR</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left;">N° EXP / PAPELETA</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left;">FECHA SOLICITUD</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: center;">ESTADO</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: center;">ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sol in solicitudes %}
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 0.6rem 0.5rem; font-weight: 700; color: #a78bfa;">
+                            <i class="fa-regular fa-calendar-check"></i> {{ sol.fecha_compensacion }} (24h)
+                        </td>
+                        <td style="padding: 0.6rem 0.5rem; font-family: monospace; color: #93c5fd;">{{ sol.codigo_servidor }}</td>
+                        <td style="padding: 0.6rem 0.5rem; font-family: monospace; color: var(--text-muted);">{{ sol.dni }}</td>
+                        <td style="padding: 0.6rem 0.75rem; font-weight: 600; color: #fff;">{{ sol.apellidos_nombres }}</td>
+                        <td style="padding: 0.6rem 0.5rem; color: #cbd5e1;">{{ sol.numero_solicitud or '-' }}</td>
+                        <td style="padding: 0.6rem 0.5rem; color: var(--text-muted);">{{ sol.fecha_solicitud or '-' }}</td>
+                        <td style="padding: 0.6rem 0.5rem; text-align: center;">
+                            <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">
+                                AUTORIZADO
+                            </span>
+                        </td>
+                        <td style="padding: 0.6rem 0.5rem; text-align: center;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                <a href="/compensacion/papeleta/{{ sol.id_solicitud }}" target="_blank" 
+                                   style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.3rem 0.6rem; border-radius: 6px; text-decoration: none; font-size: 0.75rem; font-weight: 600;">
+                                    <i class="fa-solid fa-print"></i> Ver Papeleta
+                                </a>
+                                <form action="/compensacion/eliminar-uso/{{ sol.id_solicitud }}" method="post" onsubmit="return confirm('¿Seguro que deseas anular este registro de compensación? El día regresará al saldo del servidor.');" style="margin: 0;">
+                                    <button type="submit" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                                        <i class="fa-solid fa-trash-can"></i> Anular
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
+                            Aún no se han registrado papeletas de compensación manuales para el año {{ anio }}.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ========================================================================================= -->
+<!-- MODAL FLOTANTE: REGISTRAR USO MANUAL DE COMPENSACIÓN (ANEXO 01) -->
+<!-- ========================================================================================= -->
+<div id="modalRegistrarUso" class="modal-backdrop">
+    <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #10b981; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px;">ANEXO 01</span>
+                <h3 style="margin: 0; font-size: 1.15rem; color: #fff; font-weight: 700;">Registrar Compensación Manual</h3>
+            </div>
+            <button onclick="cerrarModalRegistrarUso()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="/compensacion/registrar-uso" method="post" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                    Servidor Penitenciario (Jornada 24x48) *
+                </label>
+                <select name="id_empleado" id="modalSelectEmpleado" required 
+                        style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem; color: #fff; font-size: 0.85rem;"
+                        onchange="actualizarInfoSaldoServidor(this.value)">
+                    <option value="">-- Seleccione Servidor --</option>
+                    {% for s in saldos %}
+                    <option value="{{ s.id_empleado }}" data-saldo="{{ s.dias_disponibles }}" data-nombre="{{ s.apellidos_nombres }}">
+                        {{ s.codigo_servidor }} - {{ s.apellidos_nombres }} (Saldo: {{ s.dias_disponibles }} días)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Visualizador de saldo en tiempo real -->
+            <div id="boxInfoSaldo" style="background: rgba(15, 23, 42, 0.6); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Saldo Disponible Actual:</span>
+                <span id="txtSaldoDisponible" style="font-size: 0.95rem; font-weight: 800; color: #34d399;">-- días</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                        Fecha de Compensación (Día libre 24h) *
+                    </label>
+                    <input type="date" name="fecha_compensacion" required 
+                           style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem; color: #fff; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                        Fecha de Presentación Solicitud
+                    </label>
+                    <input type="date" name="fecha_solicitud" value="{{ fecha_hoy }}" 
+                           style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem; color: #fff; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                    N° de Solicitud / Papeleta / Trámite Manual
+                </label>
+                <input type="text" name="numero_solicitud" placeholder="Ej: Exp. 012-2026 / Papeleta Anexo 1" 
+                       style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem; color: #fff; font-size: 0.85rem;">
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                    Observaciones (Opcional)
+                </label>
+                <input type="text" name="observaciones" placeholder="Ej: Con visto bueno de Jefatura de Seguridad" 
+                       style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem; color: #fff; font-size: 0.85rem;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                <button type="button" onclick="cerrarModalRegistrarUso()" 
+                        style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid var(--border-color); padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                    Registrar y Descontar Saldo
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
-function filtrarTabla() {
-    const input = document.getElementById('filtroCompensacion').value.toLowerCase();
-    const rows = document.querySelectorAll('#tablaAnexo3 tbody tr');
-    rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(input) ? '' : 'none';
-    });
-}
+    // Filtro rápido de tablas
+    function filtrarTablaGenerica(idTabla, texto) {
+        var filtro = texto.toLowerCase();
+        var tabla = document.getElementById(idTabla);
+        if (!tabla) return;
+        var filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+        for (var i = 0; i < filas.length; i++) {
+            var contenido = filas[i].textContent.toLowerCase();
+            filas[i].style.display = contenido.indexOf(filtro) > -1 ? "" : "none";
+        }
+    }
+
+    // Modal de registro manual
+    function abrirModalRegistrarUso() {
+        document.getElementById('modalRegistrarUso').style.display = 'flex';
+    }
+
+    function cerrarModalRegistrarUso() {
+        document.getElementById('modalRegistrarUso').style.display = 'none';
+    }
+
+    function prepararRegistroUso(idEmpleado, nombre, saldo) {
+        abrirModalRegistrarUso();
+        var select = document.getElementById('modalSelectEmpleado');
+        select.value = idEmpleado;
+        actualizarInfoSaldoServidor(idEmpleado);
+    }
+
+    function actualizarInfoSaldoServidor(idEmpleado) {
+        var select = document.getElementById('modalSelectEmpleado');
+        var opt = select.options[select.selectedIndex];
+        var saldo = opt ? opt.getAttribute('data-saldo') : null;
+        var txt = document.getElementById('txtSaldoDisponible');
+        if (saldo !== null && saldo !== undefined && saldo !== '') {
+            txt.textContent = saldo + ' días disponibles';
+            txt.style.color = parseInt(saldo) > 0 ? '#34d399' : '#f87171';
+        } else {
+            txt.textContent = '-- días';
+            txt.style.color = '#34d399';
+        }
+    }
+
+    // Cerrar al hacer clic fuera del modal
+    window.onclick = function(event) {
+        var modal = document.getElementById('modalRegistrarUso');
+        if (event.target == modal) {
+            cerrarModalRegistrarUso();
+        }
+    }
 </script>
 {% endblock %}
