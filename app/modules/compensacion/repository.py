@@ -29,7 +29,9 @@ class CompensacionRepository:
                 FROM empleados e
                 JOIN asistencia_mensual_personal amp ON amp.id_empleado = e.id_empleado
                 LEFT JOIN regimenes_laborales r ON amp.id_regimen = r.id_regimen
-                WHERE amp.horario_laboral LIKE '%24%' OR amp.area_clasificacion = 'SEG'
+                WHERE amp.cargo_funcion = 'AGENTE DE SEGURIDAD'
+                  AND amp.area_clasificacion = 'SEG'
+                  AND (amp.horario_laboral LIKE '%24%' OR amp.horario_laboral LIKE '%25%')
                 GROUP BY e.id_empleado
                 ORDER BY e.apellidos_nombres ASC
             """)
@@ -170,7 +172,9 @@ class CompensacionRepository:
                 INSERT OR IGNORE INTO saldos_compensacion (id_empleado, anio_goce, dias_asignados, dias_utilizados, dias_disponibles)
                 SELECT DISTINCT a.id_empleado, ?, 16, 0, 16
                 FROM asistencia_mensual_personal a
-                WHERE a.horario_laboral LIKE '%24%' OR a.area_clasificacion = 'SEG'
+                WHERE a.cargo_funcion = 'AGENTE DE SEGURIDAD'
+                  AND a.area_clasificacion = 'SEG'
+                  AND (a.horario_laboral LIKE '%24%' OR a.horario_laboral LIKE '%25%')
             """, (anio,))
             conn.commit()
 
@@ -187,9 +191,11 @@ class CompensacionRepository:
                     COALESCE(r.nombre, 'LEY 29709') as regimen_nombre
                 FROM saldos_compensacion sc
                 JOIN empleados e ON sc.id_empleado = e.id_empleado
-                LEFT JOIN asistencia_mensual_personal amp ON amp.id_empleado = e.id_empleado
+                JOIN asistencia_mensual_personal amp ON amp.id_empleado = e.id_empleado
                 LEFT JOIN regimenes_laborales r ON amp.id_regimen = r.id_regimen
                 WHERE sc.anio_goce = ?
+                  AND amp.cargo_funcion = 'AGENTE DE SEGURIDAD'
+                  AND amp.area_clasificacion = 'SEG'
                 GROUP BY e.id_empleado
                 ORDER BY e.apellidos_nombres ASC
             """, (anio,))
@@ -239,9 +245,11 @@ class CompensacionRepository:
                     COALESCE(sc.dias_asignados, 16) as saldo_reconocido
                 FROM saldos_compensacion sc
                 JOIN empleados e ON sc.id_empleado = e.id_empleado
-                LEFT JOIN asistencia_mensual_personal amp ON amp.id_empleado = e.id_empleado
+                JOIN asistencia_mensual_personal amp ON amp.id_empleado = e.id_empleado
                 LEFT JOIN regimenes_laborales r ON amp.id_regimen = r.id_regimen
                 WHERE sc.anio_goce = ?
+                  AND amp.cargo_funcion = 'AGENTE DE SEGURIDAD'
+                  AND amp.area_clasificacion = 'SEG'
                 GROUP BY e.id_empleado
                 ORDER BY e.apellidos_nombres ASC
             """, (anio,))

@@ -62,7 +62,10 @@ class CompensacionService:
                 FROM asistencia_mensual_personal a
                 JOIN empleados e ON a.id_empleado = e.id_empleado
                 LEFT JOIN regimenes_laborales r ON a.id_regimen = r.id_regimen
-                WHERE a.id_reporte = ? AND (a.horario_laboral LIKE '%24%' OR a.area_clasificacion = 'SEG')
+                WHERE a.id_reporte = ? 
+                  AND a.cargo_funcion = 'AGENTE DE SEGURIDAD' 
+                  AND a.area_clasificacion = 'SEG'
+                  AND (a.horario_laboral LIKE '%24%' OR a.horario_laboral LIKE '%25%')
                 ORDER BY e.apellidos_nombres ASC
             """, (id_reporte,))
             personal = [dict(r) for r in cur.fetchall()]
@@ -296,7 +299,9 @@ class CompensacionService:
                     if termina_en_domingo:
                         domingo_dia = dias_sem[-1]["dia"]
                         fecha_dom = date(anio, mes, domingo_dia)
-                        fecha_lun = fecha_dom - timedelta(days=6)
+                        # La evaluación de exceso no retrocede antes del 1 de enero del año fiscal.
+                        # En la primera semana de enero (jueves 1 a domingo 4) son solo 4 días naturales (máx 2 turnos ordinarios = 48h, sin exceso).
+                        fecha_lun = max(date(anio, 1, 1), fecha_dom - timedelta(days=6))
 
                         # Contar turnos 24 en los 7 días naturales
                         curr_f = fecha_lun
