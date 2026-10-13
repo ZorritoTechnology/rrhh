@@ -147,3 +147,52 @@ class DesplazamientoRepository:
             id_desp = cur.lastrowid
             conn.commit()
             return id_desp
+
+    @staticmethod
+    def actualizar_desplazamiento(id_desplazamiento: int, datos: Dict[str, Any]) -> bool:
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE desplazamientos_personal SET
+                    id_empleado = COALESCE(?, id_empleado),
+                    tipo_movimiento = COALESCE(?, tipo_movimiento),
+                    nombre_origen_ext = COALESCE(?, nombre_origen_ext),
+                    nombre_destino_ext = COALESCE(?, nombre_destino_ext),
+                    fecha_desplazamiento = COALESCE(?, fecha_desplazamiento),
+                    fecha_presentacion_eepp = COALESCE(?, fecha_presentacion_eepp),
+                    documento_oficial = COALESCE(?, documento_oficial),
+                    vacaciones_periodo = COALESCE(?, vacaciones_periodo),
+                    vacaciones_gozadas_origen = COALESCE(?, vacaciones_gozadas_origen),
+                    vacaciones_saldo_origen = COALESCE(?, vacaciones_saldo_origen),
+                    comp_ganadas_origen = COALESCE(?, comp_ganadas_origen),
+                    comp_gozadas_origen = COALESCE(?, comp_gozadas_origen),
+                    comp_saldo_origen = COALESCE(?, comp_saldo_origen),
+                    observaciones = COALESCE(?, observaciones)
+                WHERE id_desplazamiento = ?
+            """, (
+                datos.get("id_empleado"),
+                datos.get("tipo_movimiento"),
+                datos.get("nombre_origen_ext"),
+                datos.get("nombre_destino_ext"),
+                datos.get("fecha_desplazamiento"),
+                datos.get("fecha_presentacion_eepp"),
+                datos.get("documento_oficial"),
+                datos.get("vacaciones_periodo"),
+                datos.get("vacaciones_gozadas_origen"),
+                datos.get("vacaciones_saldo_origen"),
+                datos.get("comp_ganadas_origen"),
+                datos.get("comp_gozadas_origen"),
+                datos.get("comp_saldo_origen"),
+                datos.get("observaciones"),
+                id_desplazamiento
+            ))
+            conn.commit()
+            return True
+
+    @staticmethod
+    def eliminar_desplazamiento(id_desplazamiento: int) -> bool:
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM desplazamientos_personal WHERE id_desplazamiento = ?", (id_desplazamiento,))
+            conn.commit()
+            return True

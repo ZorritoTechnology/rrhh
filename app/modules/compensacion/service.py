@@ -115,6 +115,23 @@ class CompensacionService:
                     rotaciones_por_emp[emp_id] = []
                 rotaciones_por_emp[emp_id].append(dict(rot))
 
+            # Desplazamientos registrados (Altas y Bajas entre penales)
+            cur.execute("""
+                SELECT id_desplazamiento, id_empleado, tipo_movimiento, 
+                       fecha_desplazamiento, fecha_presentacion_eepp,
+                       nombre_origen_ext, nombre_destino_ext, documento_oficial,
+                       comp_ganadas_origen, comp_gozadas_origen, comp_saldo_origen, estado
+                FROM desplazamientos_personal
+                ORDER BY fecha_desplazamiento ASC
+            """)
+            desplazamientos_todos = cur.fetchall()
+            desplazamientos_por_emp = {}
+            for dp in desplazamientos_todos:
+                e_id = dp["id_empleado"]
+                if e_id not in desplazamientos_por_emp:
+                    desplazamientos_por_emp[e_id] = []
+                desplazamientos_por_emp[e_id].append(dict(dp))
+
             # Mapear novedades por empleado y día
             novedades_map = {p["id_empleado"]: {} for p in personal}
 
@@ -216,7 +233,7 @@ class CompensacionService:
                 # Determinar grupo base del servidor (directamente desde su asignación oficial)
                 g_base_id = emp.get("grupo_guardia_default", 1) or 1
 
-                # Detectar condición de Abandono de Servicio
+                # Detectar condición de Abandono de Servicio y Desplazado Permanente
                 estado_lab = str(emp.get("estado_laboral", "")).upper()
                 obs_asist = str(emp.get("asistencia_observaciones", "")).lower()
                 obs_prev = str(rec_guardado.get("observaciones", "") if rec_guardado else "").lower()
@@ -225,6 +242,24 @@ class CompensacionService:
                     "abandono" in obs_asist or 
                     "abandono" in obs_prev
                 )
+                es_desplazado_permanente = ("DESPLAZADO" in estado_lab)
+
+                # Movimientos de desplazamiento registrados para este servidor
+                desp_emp_list = desplazamientos_por_emp.get(emp_id, [])
+                desp_mes_texto = ""
+                for dp in desp_emp_list:
+                    f_d_str = dp.get("fecha_desplazamiento")
+                    if f_d_str:
+                        try:
+                            f_d = datetime.strptime(f_d_str, "%Y-%m-%d").date()
+                            if f_d.year == anio and f_d.month == mes:
+                                if dp["tipo_movimiento"] == "BAJA_SALIDA":
+                                    desp_mes_texto = f"Baja a {dp.get('nombre_destino_ext', 'otro penal')} ({f_d_str})"
+                                else:
+                                    desp_mes_texto = f"Alta de {dp.get('nombre_origen_ext', 'otro penal')} ({f_d_str})"
+                                break
+                        except Exception:
+                            pass
 
                 # Mapear rotaciones registradas del empleado ordenadas cronológicamente
                 rotaciones_emp = rotaciones_por_emp.get(emp_id, [])
@@ -264,6 +299,43 @@ class CompensacionService:
                     # Si es personal en abandono, no labora turnos y no genera compensación
                     if es_abandono:
                         return "AB"
+
+                    # Reglas normativas de Desplazamientos entre Penales:
+                    # - BAJA: labora en Iquitos hasta la fecha de desplazamiento. A partir de esa fecha ya no labora aquí (marca DP) y no suma.
+                    # - ALTA: antes de su fecha de presentación/ingreso no laboraba en Iquitos (marca DP). A partir de su llegada labora aquí normalmente.
+                    for dp in desp_emp_list:
+                        tipo_mov = dp.get("tipo_movimiento")
+                        f_desp_str = dp.get("fecha_desplazamiento")
+                        f_pres_str = dp.get("fecha_presentacion_eepp") or f_desp_str
+
+                        if tipo_mov == "BAJA_SALIDA" and f_desp_str:
+                            try:
+                                f_baja = datetime.strptime(f_desp_str, "%Y-%m-%d").date()
+                                if f_obj >= f_baja:
+                                    return "DP"
+                            except Exception:
+                                pass
+
+                        elif tipo_mov == "ALTA_RECEPCION" and f_pres_str:
+                            try:
+                                f_alta = datetime.strptime(f_pres_str, "%Y-%m-%d").date()
+                                if f_obj < f_alta:
+                                    return "DP"
+                            except Exception:
+                                pass
+
+                    # Si el servidor no tiene movimiento en este mes pero está catalogado como DESPLAZADO permanentemente (ej. Zapata Roque a Moyobamba):
+                    if es_desplazado_permanente and not desp_mes_texto:
+                        return "DP"
+
+                    # Si el servidor ingresó al establecimiento durante el año en fecha posterior a f_obj:
+                    if emp.get("fecha_ingreso_eepp"):
+                        try:
+                            f_ing = datetime.strptime(emp["fecha_ingreso_eepp"], "%Y-%m-%d").date()
+                            if f_ing.year == anio and f_obj < f_ing:
+                                return "DP"
+                        except Exception:
+                            pass
 
                     # 1. Novedades registradas si es del mes actual (licencia, vacaciones, etc.)
                     if f_obj.year == anio and f_obj.month == mes and f_obj.day in novedades_map.get(emp_id, {}):
@@ -373,10 +445,14 @@ class CompensacionService:
                 obs_empleado = ""
                 if es_abandono:
                     obs_empleado = emp.get("asistencia_observaciones") or "Abandono laboral desde el 10/05/2021"
+                elif es_desplazado_permanente:
+                    obs_empleado = "Desplazado a EP Moyobamba"
+                elif desp_mes_texto:
+                    obs_empleado = desp_mes_texto
                 elif rec_guardado:
                     obs_empleado = rec_guardado.get("observaciones", "")
 
-                grupo_destino_vista = g_mes_id if not es_abandono else g_base_id
+                grupo_destino_vista = g_mes_id if (not es_abandono and not es_desplazado_permanente) else g_base_id
 
                 emp_data = {
                     "id_empleado": emp_id,
@@ -391,6 +467,8 @@ class CompensacionService:
                     "semanas_detalle": semanas_detalle,
                     "dias_exceso": dias_exceso_trabajador,
                     "es_abandono": es_abandono,
+                    "es_desplazado": es_desplazado_permanente or bool(desp_mes_texto),
+                    "desplazamiento_texto": desp_mes_texto,
                     "rotacion_memo": memo_rotacion_texto,
                     "observaciones": obs_empleado
                 }
@@ -420,12 +498,15 @@ class CompensacionService:
                 for emp in g["empleados"]:
                     emp_id = emp["id_empleado"]
                     dias_exceso = emp.get("dias_exceso", 0)
-                    if emp.get("es_abandono"):
-                        dias_exceso = 0
+                    if emp.get("es_abandono") or (emp.get("es_desplazado") and emp.get("dias_exceso", 0) == 0):
+                        pass
                     detalle_dias = json.dumps(emp.get("dias_calculados", {}))
                     obs = emp.get("rotacion_memo", "") or emp.get("observaciones", "")
                     if emp.get("es_abandono"):
                         obs = "ABANDONO LABORAL (Sin goce ni exceso)"
+                        dias_exceso = 0
+                    elif emp.get("desplazamiento_texto"):
+                        obs = f"{emp['desplazamiento_texto']} | {obs}".strip(" |")
 
                     cur.execute("""
                         INSERT INTO compensacion_dias_ganados (

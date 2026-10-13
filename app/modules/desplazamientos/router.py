@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from datetime import date
 from app.modules.desplazamientos.repository import DesplazamientoRepository
@@ -168,3 +168,52 @@ async def ver_constancia_anexo6(request: Request, id_desplazamiento: int):
             "desp": desp
         }
     )
+
+@router.get("/detalle/{id_desplazamiento}")
+async def obtener_desplazamiento_json(id_desplazamiento: int):
+    """
+    Retorna los datos completos de un desplazamiento en formato JSON para el modal interactivo de edición.
+    """
+    desp = DesplazamientoRepository.obtener_desplazamiento_detalle(id_desplazamiento)
+    if not desp:
+        return JSONResponse({"error": "Desplazamiento no encontrado"}, status_code=404)
+    return JSONResponse(desp)
+
+@router.post("/editar/{id_desplazamiento}")
+async def editar_desplazamiento(
+    request: Request,
+    id_desplazamiento: int,
+    tipo_movimiento: str = Form(...),
+    nombre_origen_ext: str = Form(""),
+    nombre_destino_ext: str = Form(""),
+    fecha_desplazamiento: str = Form(...),
+    fecha_presentacion_eepp: str = Form(...),
+    documento_oficial: str = Form(...),
+    vacaciones_periodo: str = Form("2025-2026"),
+    vacaciones_gozadas_origen: int = Form(0),
+    vacaciones_saldo_origen: int = Form(30),
+    comp_ganadas_origen: int = Form(0),
+    comp_gozadas_origen: int = Form(0),
+    comp_saldo_origen: int = Form(0),
+    observaciones: str = Form("")
+):
+    """
+    Procesa la modificación de una Hoja de Desplazamiento (Anexo 06) y actualiza saldos vinculados.
+    """
+    resultado = DesplazamientoService.procesar_modificacion_desplazamiento(
+        id_desplazamiento=id_desplazamiento,
+        tipo_movimiento=tipo_movimiento,
+        nombre_origen_ext=nombre_origen_ext,
+        nombre_destino_ext=nombre_destino_ext,
+        fecha_desplazamiento=fecha_desplazamiento,
+        fecha_presentacion_eepp=fecha_presentacion_eepp,
+        documento_oficial=documento_oficial,
+        vacaciones_periodo=vacaciones_periodo,
+        vacaciones_gozadas_origen=vacaciones_gozadas_origen,
+        vacaciones_saldo_origen=vacaciones_saldo_origen,
+        comp_ganadas_origen=comp_ganadas_origen,
+        comp_gozadas_origen=comp_gozadas_origen,
+        comp_saldo_origen=comp_saldo_origen,
+        observaciones=observaciones
+    )
+    return RedirectResponse(url="/desplazamientos", status_code=303)

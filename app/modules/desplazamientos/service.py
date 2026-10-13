@@ -141,3 +141,94 @@ class DesplazamientoService:
             "id_desplazamiento": id_desp,
             "message": f"Baja por desplazamiento registrada exitosamente hacia {nombre_destino_ext}. Puede imprimir la Constancia Anexo 06."
         }
+
+    @staticmethod
+    def procesar_modificacion_desplazamiento(
+        id_desplazamiento: int,
+        tipo_movimiento: str,
+        nombre_origen_ext: str,
+        nombre_destino_ext: str,
+        fecha_desplazamiento: str,
+        fecha_presentacion_eepp: str,
+        documento_oficial: str,
+        vacaciones_periodo: str = "2025-2026",
+        vacaciones_gozadas_origen: int = 0,
+        vacaciones_saldo_origen: int = 30,
+        comp_ganadas_origen: int = 0,
+        comp_gozadas_origen: int = 0,
+        comp_saldo_origen: int = 0,
+        observaciones: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Modifica un registro de desplazamiento existente (Hoja de Traslado / Anexo 06)
+        y sincroniza los saldos de compensación 24x48 y récord correspondiente.
+        """
+        desp = DesplazamientoRepository.obtener_desplazamiento_detalle(id_desplazamiento)
+        if not desp:
+            return {"success": False, "message": "Desplazamiento no encontrado."}
+
+        id_empleado = desp["id_empleado"]
+
+        datos = {
+            "tipo_movimiento": tipo_movimiento,
+            "nombre_origen_ext": nombre_origen_ext,
+            "nombre_destino_ext": nombre_destino_ext,
+            "fecha_desplazamiento": fecha_desplazamiento,
+            "fecha_presentacion_eepp": fecha_presentacion_eepp,
+            "documento_oficial": documento_oficial,
+            "vacaciones_periodo": vacaciones_periodo,
+            "vacaciones_gozadas_origen": vacaciones_gozadas_origen,
+            "vacaciones_saldo_origen": vacaciones_saldo_origen,
+            "comp_ganadas_origen": comp_ganadas_origen,
+            "comp_gozadas_origen": comp_gozadas_origen,
+            "comp_saldo_origen": comp_saldo_origen,
+            "observaciones": observaciones
+        }
+
+        DesplazamientoRepository.actualizar_desplazamiento(id_desplazamiento, datos)
+
+        # Sincronizar saldos de compensación
+        with get_connection() as conn:
+            cur = conn.cursor()
+            if tipo_movimiento == "ALTA_RECEPCION":
+                obs_saldo = f"ALTA POR DESPLAZAMIENTO: Procedente de {nombre_origen_ext or 'otro penal'}. Trae {comp_ganadas_origen} días ganados, {comp_gozadas_origen} gozados en origen. Doc: {documento_oficial}"
+                cur.execute("""
+                    SELECT id_saldo, dias_asignados, dias_utilizados FROM saldos_compensacion
+                    WHERE id_empleado = ? AND anio_goce = 2026
+                """, (id_empleado,))
+                row = cur.fetchone()
+                dias_disp = max(0, 16 - comp_gozadas_origen) if comp_saldo_origen == 0 else comp_saldo_origen
+                if row:
+                    cur.execute("""
+                        UPDATE saldos_compensacion
+                        SET dias_utilizados = ?,
+                            dias_disponibles = ?,
+                            observaciones = ?
+                        WHERE id_saldo = ?
+                    """, (comp_gozadas_origen, dias_disp, obs_saldo, row["id_saldo"]))
+                else:
+                    cur.execute("""
+                        INSERT INTO saldos_compensacion (
+                            id_empleado, anio_goce, dias_asignados, dias_utilizados, dias_disponibles, observaciones
+                        ) VALUES (?, 2026, 16, ?, ?, ?)
+                    """, (id_empleado, comp_gozadas_origen, dias_disp, obs_saldo))
+
+                # Actualizar también fecha_ingreso_eepp en empleados si aplica
+                if fecha_presentacion_eepp:
+                    cur.execute("""
+                        UPDATE empleados SET fecha_ingreso_eepp = ? WHERE id_empleado = ?
+                    """, (fecha_presentacion_eepp, id_empleado))
+            else:
+                obs_baja = f"DESPLAZADO A {nombre_destino_ext} EL {fecha_desplazamiento}. Doc: {documento_oficial}"
+                cur.execute("""
+                    UPDATE saldos_compensacion
+                    SET observaciones = ?
+                    WHERE id_empleado = ? AND anio_goce = 2026
+                """, (obs_baja, id_empleado))
+
+            conn.commit()
+
+        return {
+            "success": True,
+            "message": "Registro de desplazamiento y saldos sincronizados exitosamente."
+        }
