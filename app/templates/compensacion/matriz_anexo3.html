@@ -508,7 +508,15 @@
                         <td style="padding: 0.45rem 0.4rem; text-align: left; font-family: monospace; font-weight: 700; color: #93c5fd;">{{ emp.codigo_servidor }}</td>
                         <td style="padding: 0.45rem 0.4rem; text-align: left; font-family: monospace; color: var(--text-muted);">{{ emp.dni }}</td>
                         <td style="padding: 0.45rem 0.5rem; text-align: left; font-weight: 600; color: #fff;">
-                            {{ emp.apellidos_nombres }}
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                <span>{{ emp.apellidos_nombres }}</span>
+                                <button type="button" 
+                                        onclick="abrirModalCambiarGrupo('{{ emp.id_empleado }}', '{{ emp.apellidos_nombres }}', '{{ emp.grupo_id }}')" 
+                                        title="Acomodar grupo de {{ emp.apellidos_nombres }}" 
+                                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: #94a3b8; border-radius: 6px; padding: 0.15rem 0.4rem; font-size: 0.68rem; cursor: pointer; white-space: nowrap;">
+                                    <i class="fa-solid fa-people-arrows"></i> Mover
+                                </button>
+                            </div>
                             {% if emp.rotacion_memo %}
                             <div style="font-size: 0.68rem; color: #c084fc; font-weight: normal; margin-top: 0.15rem;">
                                 <i class="fa-solid fa-arrows-spin"></i> {{ emp.rotacion_memo }}
@@ -1123,6 +1131,61 @@
     </div>
 </div>
 
+<!-- ========================================================================================= -->
+<!-- MODAL 4: TRASLADAR / ACOMODAR SERVIDOR DE GRUPO -->
+<!-- ========================================================================================= -->
+<div id="modalCambiarGrupo" class="modal-backdrop">
+    <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #3b82f6; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px;">ORGANIZACIÓN</span>
+                <h3 style="margin: 0; font-size: 1.15rem; color: #fff; font-weight: 700;">Acomodar Grupo de Guardia</h3>
+            </div>
+            <button onclick="cerrarModalCambiarGrupo()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="/compensacion/empleado/cambiar-grupo" method="post" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="id_empleado" id="modalInputIdEmpleadoGrupo" value="">
+            <input type="hidden" name="anio" value="{{ anio }}">
+            <input type="hidden" name="mes" value="{{ mes_anexo2 }}">
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                    Servidor Penitenciario
+                </label>
+                <div id="modalNombreEmpleadoGrupo" style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem 0.85rem; color: #93c5fd; font-weight: 700; font-size: 0.9rem;">
+                    --
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                    Asignar al Grupo *
+                </label>
+                <select name="id_grupo" id="modalSelectIdGrupo" required 
+                        style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem; color: #fff; font-size: 0.85rem;">
+                    <option value="1">Grupo 1</option>
+                    <option value="2">Grupo 2</option>
+                    <option value="3">Grupo 3</option>
+                </select>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                <button type="button" onclick="cerrarModalCambiarGrupo()" 
+                        style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid var(--border-color); padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                    Guardar y Mover de Grupo
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     // Filtro de tablas
     function filtrarTablaGenerica(idTabla, texto) {
@@ -1179,6 +1242,17 @@
     }
     function cerrarModalRotacion() {
         document.getElementById('modalRotacionGrupo').style.display = 'none';
+    }
+
+        // Modal Cambiar Grupo
+    function abrirModalCambiarGrupo(idEmp, nombreEmp, idGrupoActual) {
+        document.getElementById('modalInputIdEmpleadoGrupo').value = idEmp;
+        document.getElementById('modalNombreEmpleadoGrupo').textContent = nombreEmp;
+        if (idGrupoActual) document.getElementById('modalSelectIdGrupo').value = idGrupoActual;
+        document.getElementById('modalCambiarGrupo').style.display = 'flex';
+    }
+    function cerrarModalCambiarGrupo() {
+        document.getElementById('modalCambiarGrupo').style.display = 'none';
     }
 
     // Modal Cambiar Alcaide

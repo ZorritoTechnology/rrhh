@@ -158,12 +158,43 @@ async def asignar_alcaide_grupo(
     mes: int = Form(1)
 ):
     """
-    Asigna o actualiza el Alcaide / Responsable de un Grupo de Guardia.
+    Asigna o actualiza el Alcaide / Responsable de un Grupo de Guardia,
+    trasladándolo automáticamente a su nuevo grupo.
     """
     try:
         CompensacionRepository.asignar_alcaide_grupo(id_grupo, id_alcaide)
+        res = CompensacionService.calcular_anexo2_mes(anio, mes)
+        if res.get("grupos"):
+            CompensacionService.guardar_anexo2_en_db(anio, mes, res["grupos"])
+
         return RedirectResponse(
-            f"/compensacion?tab=anexo2&mes_anexo2={mes}&anio={anio}&mensaje=Alcaide+del+Grupo+{id_grupo}+actualizado+correctamente.",
+            f"/compensacion?tab=anexo2&mes_anexo2={mes}&anio={anio}&mensaje=Alcaide+del+Grupo+{id_grupo}+asignado+correctamente+y+trasladado+a+su+grupo.",
+            status_code=303
+        )
+    except Exception as e:
+        return RedirectResponse(
+            f"/compensacion?tab=anexo2&mes_anexo2={mes}&anio={anio}&error={str(e)}",
+            status_code=303
+        )
+
+@router.post("/empleado/cambiar-grupo")
+async def cambiar_grupo_empleado(
+    id_empleado: int = Form(...),
+    id_grupo: int = Form(...),
+    anio: int = Form(2026),
+    mes: int = Form(1)
+):
+    """
+    Traslada a un servidor directamente a otro grupo para acomodar los grupos iniciales.
+    """
+    try:
+        CompensacionRepository.cambiar_grupo_empleado(id_empleado, id_grupo, anio, mes)
+        res = CompensacionService.calcular_anexo2_mes(anio, mes)
+        if res.get("grupos"):
+            CompensacionService.guardar_anexo2_en_db(anio, mes, res["grupos"])
+
+        return RedirectResponse(
+            f"/compensacion?tab=anexo2&mes_anexo2={mes}&anio={anio}&mensaje=Servidor+trasladado+al+Grupo+{id_grupo}+correctamente.",
             status_code=303
         )
     except Exception as e:

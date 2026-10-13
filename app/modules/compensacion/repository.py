@@ -94,11 +94,55 @@ class CompensacionRepository:
     def asignar_alcaide_grupo(id_grupo: int, id_alcaide: int) -> bool:
         with get_connection() as conn:
             cur = conn.cursor()
+            # 1. Si era alcaide de otro grupo, desvincular de ese grupo
+            cur.execute("""
+                UPDATE grupos_guardia_seguridad
+                SET id_alcaide = NULL
+                WHERE id_alcaide = ? AND id_grupo != ?
+            """, (id_alcaide, id_grupo))
+
+            # 2. Asignar como alcaide del grupo destino
             cur.execute("""
                 UPDATE grupos_guardia_seguridad
                 SET id_alcaide = ?
                 WHERE id_grupo = ?
             """, (id_alcaide, id_grupo))
+
+            # 3. Trasladar al empleado a ese grupo para que desaparezca del anterior y pertenezca al asignado
+            cur.execute("""
+                UPDATE empleados
+                SET grupo_guardia_default = ?
+                WHERE id_empleado = ?
+            """, (id_grupo, id_alcaide))
+
+            # 4. Actualizar en compensacion_dias_ganados para reflejar el traslado
+            cur.execute("""
+                UPDATE compensacion_dias_ganados
+                SET grupo_guardia = ?
+                WHERE id_empleado = ?
+            """, (f"Grupo {id_grupo}", id_alcaide))
+
+            conn.commit()
+            return True
+
+    @staticmethod
+    def cambiar_grupo_empleado(id_empleado: int, id_grupo: int, anio: int = 2026, mes: int = 1) -> bool:
+        """
+        Traslada a un servidor directamente a otro grupo para acomodar los grupos iniciales.
+        """
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE empleados
+                SET grupo_guardia_default = ?
+                WHERE id_empleado = ?
+            """, (id_grupo, id_empleado))
+
+            cur.execute("""
+                UPDATE compensacion_dias_ganados
+                SET grupo_guardia = ?
+                WHERE id_empleado = ? AND anio = ? AND mes = ?
+            """, (f"Grupo {id_grupo}", id_empleado, anio, mes))
             conn.commit()
             return True
 

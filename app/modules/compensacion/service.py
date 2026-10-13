@@ -212,16 +212,8 @@ class CompensacionService:
                 emp_id = emp["id_empleado"]
                 rec_guardado = guardados_map.get(emp_id)
 
-                # Determinar grupo base del servidor
+                # Determinar grupo base del servidor (directamente desde su asignación oficial)
                 g_base_id = emp.get("grupo_guardia_default", 1) or 1
-                if rec_guardado and rec_guardado.get("grupo_guardia"):
-                    try:
-                        g_str = str(rec_guardado["grupo_guardia"])
-                        if "1" in g_str: g_base_id = 1
-                        elif "2" in g_str: g_base_id = 2
-                        elif "3" in g_str: g_base_id = 3
-                    except Exception:
-                        pass
 
                 # Mapear rotaciones que afectan este mes
                 rot_mes = None
