@@ -205,6 +205,14 @@ class CompensacionRepository:
             return [dict(row) for row in cur.fetchall()]
 
     @staticmethod
+    def eliminar_rotacion_grupo(id_rotacion: int) -> bool:
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM rotaciones_grupo_guardia WHERE id_rotacion = ?", (id_rotacion,))
+            conn.commit()
+            return True
+
+    @staticmethod
     def get_control_saldos(anio: int = 2026) -> List[Dict[str, Any]]:
         """
         Obtiene el control individual de saldos reconocidos, solicitudes tramitadas y saldo restante.
@@ -213,12 +221,26 @@ class CompensacionRepository:
             cur = conn.cursor()
 
             cur.execute("""
-                INSERT OR IGNORE INTO saldos_compensacion (id_empleado, anio_goce, dias_asignados, dias_utilizados, dias_disponibles)
-                SELECT DISTINCT a.id_empleado, ?, 16, 0, 16
+                INSERT OR IGNORE INTO saldos_compensacion (id_empleado, anio_goce, dias_asignados, dias_utilizados, dias_disponibles, observaciones)
+                SELECT DISTINCT a.id_empleado, ?, 
+                       CASE WHEN UPPER(COALESCE(a.estado_laboral, '')) = 'ABANDONO' OR LOWER(COALESCE(a.observaciones, '')) LIKE '%abandono%' THEN 0 ELSE 16 END, 
+                       0, 
+                       CASE WHEN UPPER(COALESCE(a.estado_laboral, '')) = 'ABANDONO' OR LOWER(COALESCE(a.observaciones, '')) LIKE '%abandono%' THEN 0 ELSE 16 END,
+                       CASE WHEN UPPER(COALESCE(a.estado_laboral, '')) = 'ABANDONO' OR LOWER(COALESCE(a.observaciones, '')) LIKE '%abandono%' THEN 'ABANDONO DE SERVICIO' ELSE 'Jornada 24x48 sin consumos registrados' END
                 FROM asistencia_mensual_personal a
                 WHERE a.cargo_funcion = 'AGENTE DE SEGURIDAD'
                   AND a.area_clasificacion = 'SEG'
                   AND (a.horario_laboral LIKE '%24%' OR a.horario_laboral LIKE '%25%')
+            """, (anio,))
+
+            # Garantizar que personal con abandono tenga 0 saldo disponible
+            cur.execute("""
+                UPDATE saldos_compensacion
+                SET dias_asignados = 0, dias_utilizados = 0, dias_disponibles = 0, observaciones = 'ABANDONO DE SERVICIO (Sin derecho a compensación)'
+                WHERE anio_goce = ? AND id_empleado IN (
+                    SELECT DISTINCT a.id_empleado FROM asistencia_mensual_personal a
+                    WHERE UPPER(COALESCE(a.estado_laboral, '')) = 'ABANDONO' OR LOWER(COALESCE(a.observaciones, '')) LIKE '%abandono%'
+                )
             """, (anio,))
             conn.commit()
 

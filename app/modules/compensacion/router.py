@@ -150,6 +150,31 @@ async def registrar_rotacion_grupo(
             status_code=303
         )
 
+@router.post("/rotacion/eliminar/{id_rotacion}")
+async def eliminar_rotacion_grupo(
+    id_rotacion: int,
+    anio: int = Form(2026),
+    mes: int = Form(...)
+):
+    """
+    Anula una rotación y recalcula el rol preservando la historia previa.
+    """
+    try:
+        CompensacionRepository.eliminar_rotacion_grupo(id_rotacion)
+        res = CompensacionService.calcular_anexo2_mes(anio, mes)
+        if res.get("grupos"):
+            CompensacionService.guardar_anexo2_en_db(anio, mes, res["grupos"])
+
+        return RedirectResponse(
+            f"/compensacion?tab=anexo2&mes_anexo2={mes}&anio={anio}&mensaje=Rotación+revertida+correctamente.+Rol+restaurado.",
+            status_code=303
+        )
+    except Exception as e:
+        return RedirectResponse(
+            f"/compensacion?tab=anexo2&mes_anexo2={mes}&anio={anio}&error={str(e)}",
+            status_code=303
+        )
+
 @router.post("/alcaide/asignar")
 async def asignar_alcaide_grupo(
     id_grupo: int = Form(...),

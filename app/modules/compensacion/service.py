@@ -58,7 +58,8 @@ class CompensacionService:
                     COALESCE(e.grupo_guardia_default, 1) as grupo_guardia_default,
                     COALESCE(r.nombre, 'LEY 29709') as regimen_nombre,
                     a.cargo_funcion,
-                    a.estado_laboral
+                    a.estado_laboral,
+                    a.observaciones as asistencia_observaciones
                 FROM asistencia_mensual_personal a
                 JOIN empleados e ON a.id_empleado = e.id_empleado
                 LEFT JOIN regimenes_laborales r ON a.id_regimen = r.id_regimen
@@ -215,44 +216,86 @@ class CompensacionService:
                 # Determinar grupo base del servidor (directamente desde su asignación oficial)
                 g_base_id = emp.get("grupo_guardia_default", 1) or 1
 
-                # Mapear rotaciones que afectan este mes
-                rot_mes = None
+                # Detectar condición de Abandono de Servicio
+                estado_lab = str(emp.get("estado_laboral", "")).upper()
+                obs_asist = str(emp.get("asistencia_observaciones", "")).lower()
+                obs_prev = str(rec_guardado.get("observaciones", "") if rec_guardado else "").lower()
+                es_abandono = (
+                    "ABANDONO" in estado_lab or 
+                    "abandono" in obs_asist or 
+                    "abandono" in obs_prev
+                )
+
+                # Mapear rotaciones registradas del empleado ordenadas cronológicamente
                 rotaciones_emp = rotaciones_por_emp.get(emp_id, [])
+                rotaciones_emp.sort(key=lambda r: datetime.strptime(r["fecha_rotacion"], "%Y-%m-%d").date())
+
+                rot_mes = None
                 for r in rotaciones_emp:
                     r_fecha = datetime.strptime(r["fecha_rotacion"], "%Y-%m-%d").date()
                     if r_fecha.year == anio and r_fecha.month == mes:
                         rot_mes = r
                         break
 
-                # Función auxiliar para determinar la marca de cualquier fecha (incluso del mes anterior)
+                # Determinar grupo activo del empleado al cierre de este mes
+                fecha_fin_mes = date(anio, mes, num_dias)
+                g_mes_id = g_base_id
+                if rotaciones_emp:
+                    ult_rot_aplicable = None
+                    for r in rotaciones_emp:
+                        r_f = datetime.strptime(r["fecha_rotacion"], "%Y-%m-%d").date()
+                        if r_f <= fecha_fin_mes:
+                            ult_rot_aplicable = r
+                    if ult_rot_aplicable:
+                        g_mes_id = 1 if "1" in ult_rot_aplicable["grupo_destino"] else (2 if "2" in ult_rot_aplicable["grupo_destino"] else 3)
+                    else:
+                        g_mes_id = 1 if "1" in rotaciones_emp[0]["grupo_origen"] else (2 if "2" in rotaciones_emp[0]["grupo_origen"] else 3)
+
                 fecha_base_anual = date(anio, 1, 1)
 
+                def parse_g_num(val) -> int:
+                    s = str(val)
+                    if "1" in s: return 1
+                    if "2" in s: return 2
+                    if "3" in s: return 3
+                    return 1
+
                 def obtener_marca_dia_especifico(f_obj: date) -> str:
-                    # 1. Novedades registradas si es del mes actual
+                    # Si es personal en abandono, no labora turnos y no genera compensación
+                    if es_abandono:
+                        return "AB"
+
+                    # 1. Novedades registradas si es del mes actual (licencia, vacaciones, etc.)
                     if f_obj.year == anio and f_obj.month == mes and f_obj.day in novedades_map.get(emp_id, {}):
                         return novedades_map[emp_id][f_obj.day]
 
-                    # 2. Rotaciones aplicables a esta fecha
+                    # 2. Rotaciones aplicables a esta fecha respetando estrictamente la historia previa
                     g_activo = g_base_id
-                    rot_aplicable = None
-                    for r in rotaciones_emp:
-                        r_f = datetime.strptime(r["fecha_rotacion"], "%Y-%m-%d").date()
-                        if r_f <= f_obj:
-                            rot_aplicable = r
-
-                    if rot_aplicable:
-                        r_f = datetime.strptime(rot_aplicable["fecha_rotacion"], "%Y-%m-%d").date()
-                        if f_obj == r_f:
-                            if rot_aplicable["modalidad_dia_cambio"] == "ADMINISTRATIVO_5PM":
-                                return "5P"
-                            else:
-                                return "24"
-                        elif f_obj > r_f:
-                            g_activo = 1 if "1" in rot_aplicable["grupo_destino"] else (2 if "2" in rot_aplicable["grupo_destino"] else 3)
+                    if rotaciones_emp:
+                        f_primera = datetime.strptime(rotaciones_emp[0]["fecha_rotacion"], "%Y-%m-%d").date()
+                        # A partir del primer cambio NO se modifican los días anteriores:
+                        # Si la fecha es anterior a la primera rotación, mantiene estrictamente su grupo de origen
+                        if f_obj < f_primera:
+                            g_activo = parse_g_num(rotaciones_emp[0]["grupo_origen"])
                         else:
-                            g_activo = 1 if "1" in rot_aplicable["grupo_origen"] else (2 if "2" in rot_aplicable["grupo_origen"] else 3)
+                            # Evaluar en qué intervalo de rotaciones cae f_obj
+                            rot_aplicable = None
+                            for r in rotaciones_emp:
+                                r_f = datetime.strptime(r["fecha_rotacion"], "%Y-%m-%d").date()
+                                if f_obj == r_f:
+                                    # El día exacto de la rotación con memorando aplica la modalidad específica
+                                    if r["modalidad_dia_cambio"] == "ADMINISTRATIVO_5PM":
+                                        return "5P"
+                                    else:
+                                        return "24"
+                                elif r_f < f_obj:
+                                    rot_aplicable = r
 
-                    # 3. Ciclo 24x48 continuo en el año fiscal
+                            if rot_aplicable:
+                                # A partir de la fecha de rotación y antes del siguiente cambio, trabaja en el grupo destino
+                                g_activo = parse_g_num(rot_aplicable["grupo_destino"])
+
+                    # 3. Ciclo 24x48 continuo en el año fiscal para el grupo activo en dicha fecha
                     delta = (f_obj - fecha_base_anual).days
                     offset = g_activo - 1
                     if ((delta - offset) % 3) == 0:
@@ -268,14 +311,10 @@ class CompensacionService:
                     dias_calculados[d] = obtener_marca_dia_especifico(fecha_dia)
 
                 if rot_mes:
-                    memo_rotacion_texto = f"Rotación: {rot_mes['numero_memorando']} ({rot_mes['modalidad_dia_cambio']})"
+                    mod_txt = "5P (Adm. hasta 5pm)" if rot_mes["modalidad_dia_cambio"] == "ADMINISTRATIVO_5PM" else "24h (Guardia)"
+                    memo_rotacion_texto = f"Rotación ({rot_mes['fecha_rotacion']}): {rot_mes['numero_memorando']} [{rot_mes['grupo_origen']} → {rot_mes['grupo_destino']}, {mod_txt}]"
 
                 # 7. Evaluar semanas (Lunes a Domingo) para exceso conforme a Directiva DI-003-2023
-                # Regla: Las semanas se evalúan estrictamente de Lunes a Domingo (7 días).
-                # Cuando la semana cierra en Domingo en este mes, se revisan los 7 días naturales
-                # (incluyendo los días del mes anterior si la semana comenzó a fines del mes previo).
-                # Si en esos 7 días acumuló 3 turnos de 24h, el Domingo es el 3er turno y suma +1 día de exceso a este mes.
-                # Si la semana comenzó en este mes pero su Domingo cae en el mes siguiente, suma al mes siguiente.
                 dias_exceso_trabajador = 0
                 semanas_detalle = []
 
@@ -286,13 +325,12 @@ class CompensacionService:
                     # Verificar si la semana termina en Domingo dentro del mes
                     termina_en_domingo = (dias_sem[-1]["weekday"] == 6)
 
-                    # Si termina en domingo, evaluamos los 7 días (Lunes a Domingo) de esta semana
+                    # Si termina en domingo y NO es abandono, evaluamos los 7 días naturales (Lunes a Domingo)
                     turnos_24_sem = 0
-                    if termina_en_domingo:
+                    if termina_en_domingo and not es_abandono:
                         domingo_dia = dias_sem[-1]["dia"]
                         fecha_dom = date(anio, mes, domingo_dia)
-                        # La evaluación de exceso no retrocede antes del 1 de enero del año fiscal.
-                        # En la primera semana de enero (jueves 1 a domingo 4) son solo 4 días naturales (máx 2 turnos ordinarios = 48h, sin exceso).
+                        # La evaluación de exceso no retrocede antes del 1 de enero del año fiscal
                         fecha_lun = max(date(anio, 1, 1), fecha_dom - timedelta(days=6))
 
                         # Contar turnos 24 en los 7 días naturales
@@ -306,11 +344,11 @@ class CompensacionService:
                     # Mapear celdas de la semana para la vista Anexo 02
                     for d_info in dias_sem:
                         dia_num = d_info["dia"]
-                        marca = dias_calculados.get(dia_num, "D")
+                        marca = dias_calculados.get(dia_num, "D" if not es_abandono else "AB")
                         es_turno_exceso = False
 
                         # El Domingo que completa los 3 turnos se resalta como turno en exceso
-                        if d_info["weekday"] == 6 and marca == "24" and turnos_24_sem >= 3:
+                        if not es_abandono and d_info["weekday"] == 6 and marca == "24" and turnos_24_sem >= 3:
                             es_turno_exceso = True
                             dias_exceso_trabajador += 1
 
@@ -323,11 +361,22 @@ class CompensacionService:
 
                     semanas_detalle.append({
                         "numero": sem["numero"],
-                        "turnos_24": turnos_24_sem,
+                        "turnos_24": turnos_24_sem if not es_abandono else 0,
                         "dias": dias_sem_info
                     })
 
-                total_exceso_mes += dias_exceso_trabajador
+                if not es_abandono:
+                    total_exceso_mes += dias_exceso_trabajador
+                else:
+                    dias_exceso_trabajador = 0
+
+                obs_empleado = ""
+                if es_abandono:
+                    obs_empleado = emp.get("asistencia_observaciones") or "Abandono laboral desde el 10/05/2021"
+                elif rec_guardado:
+                    obs_empleado = rec_guardado.get("observaciones", "")
+
+                grupo_destino_vista = g_mes_id if not es_abandono else g_base_id
 
                 emp_data = {
                     "id_empleado": emp_id,
@@ -336,17 +385,18 @@ class CompensacionService:
                     "apellidos_nombres": emp["apellidos_nombres"],
                     "regimen_nombre": emp["regimen_nombre"],
                     "cargo_funcion": emp["cargo_funcion"],
-                    "grupo_id": g_base_id,
-                    "grupo_nombre": f"Grupo {g_base_id}",
+                    "grupo_id": grupo_destino_vista,
+                    "grupo_nombre": f"Grupo {grupo_destino_vista}",
                     "dias_calculados": dias_calculados,
                     "semanas_detalle": semanas_detalle,
                     "dias_exceso": dias_exceso_trabajador,
+                    "es_abandono": es_abandono,
                     "rotacion_memo": memo_rotacion_texto,
-                    "observaciones": rec_guardado.get("observaciones", "") if rec_guardado else ""
+                    "observaciones": obs_empleado
                 }
 
-                if g_base_id in grupos_dict:
-                    grupos_dict[g_base_id]["empleados"].append(emp_data)
+                if grupo_destino_vista in grupos_dict:
+                    grupos_dict[grupo_destino_vista]["empleados"].append(emp_data)
                 else:
                     grupos_dict[1]["empleados"].append(emp_data)
 
@@ -370,8 +420,12 @@ class CompensacionService:
                 for emp in g["empleados"]:
                     emp_id = emp["id_empleado"]
                     dias_exceso = emp.get("dias_exceso", 0)
+                    if emp.get("es_abandono"):
+                        dias_exceso = 0
                     detalle_dias = json.dumps(emp.get("dias_calculados", {}))
                     obs = emp.get("rotacion_memo", "") or emp.get("observaciones", "")
+                    if emp.get("es_abandono"):
+                        obs = "ABANDONO LABORAL (Sin goce ni exceso)"
 
                     cur.execute("""
                         INSERT INTO compensacion_dias_ganados (

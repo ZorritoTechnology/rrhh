@@ -83,6 +83,13 @@
         border-radius: 3px;
         font-weight: 700;
     }
+    .cell-abandono {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.22);
+        font-weight: 800;
+        border-radius: 3px;
+        letter-spacing: -0.5px;
+    }
     .cell-descanso {
         color: #64748b;
     }
@@ -430,6 +437,7 @@
             <span><strong style="color: #60a5fa;">24</strong> = Guardia ordinaria (24h)</span>
             <span><strong style="background: #eab308; color: #000; padding: 0.1rem 0.3rem; border-radius: 3px; font-weight: 800;">24</strong> = 3er turno en exceso (L-D)</span>
             <span><strong style="background: rgba(168, 85, 247, 0.3); color: #c084fc; padding: 0.1rem 0.3rem; border-radius: 3px;">5P</strong> = Rotación administrativa hasta las 5pm (no suma 24h)</span>
+            <span><strong style="background: rgba(239, 68, 68, 0.25); color: #ef4444; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 800;">AB</strong> = Abandono de servicio (no genera turnos ni exceso)</span>
             <span><strong style="color: #64748b;">D</strong> = Franco</span>
             <span><strong style="color: #34d399;">V</strong> = Vacaciones</span>
             <span><strong style="color: #fbbf24;">L</strong> = Licencia</span>
@@ -517,7 +525,11 @@
                                     <i class="fa-solid fa-people-arrows"></i> Mover
                                 </button>
                             </div>
-                            {% if emp.rotacion_memo %}
+                            {% if emp.es_abandono %}
+                            <div style="font-size: 0.68rem; color: #ef4444; font-weight: 700; margin-top: 0.15rem;">
+                                <i class="fa-solid fa-person-circle-xmark"></i> ABANDONO DE SERVICIO (Sin compensación)
+                            </div>
+                            {% elif emp.rotacion_memo %}
                             <div style="font-size: 0.68rem; color: #c084fc; font-weight: normal; margin-top: 0.15rem;">
                                 <i class="fa-solid fa-arrows-spin"></i> {{ emp.rotacion_memo }}
                             </div>
@@ -528,7 +540,7 @@
                         <!-- CELDAS DE SEMANAS Y DÍAS -->
                         {% for sem in emp.semanas_detalle %}
                             {% for d_celda in sem.dias %}
-                            <td class="anexo2-cell {% if d_celda.es_exceso %}cell-24-exceso{% elif d_celda.marca == '24' %}cell-24-regular{% elif d_celda.marca == '5P' %}cell-rotacion-5pm{% elif d_celda.marca == 'V' %}cell-vacaciones{% elif d_celda.marca == 'L' %}cell-licencia{% elif d_celda.marca == 'I' %}cell-inasistencia{% elif d_celda.marca == 'S' %}cell-sancion{% elif d_celda.marca == 'C' %}cell-compensado{% else %}cell-descanso{% endif %}" 
+                            <td class="anexo2-cell {% if d_celda.es_exceso %}cell-24-exceso{% elif d_celda.marca == '24' %}cell-24-regular{% elif d_celda.marca == '5P' %}cell-rotacion-5pm{% elif d_celda.marca == 'AB' %}cell-abandono{% elif d_celda.marca == 'V' %}cell-vacaciones{% elif d_celda.marca == 'L' %}cell-licencia{% elif d_celda.marca == 'I' %}cell-inasistencia{% elif d_celda.marca == 'S' %}cell-sancion{% elif d_celda.marca == 'C' %}cell-compensado{% else %}cell-descanso{% endif %}" 
                                 {% if loop.last %}style="border-right: 2px solid var(--border-color);"{% endif %}
                                 title="Día {{ d_celda.dia }}: {{ d_celda.marca }}">
                                 {{ d_celda.marca }}
@@ -567,6 +579,7 @@
                         <th style="padding: 0.4rem;">ORIGEN &rarr; DESTINO</th>
                         <th style="padding: 0.4rem;">DOCUMENTO / MEMORANDO</th>
                         <th style="padding: 0.4rem;">MODALIDAD DÍA CAMBIO</th>
+                        <th style="padding: 0.4rem; text-align: center;">ACCIONES</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -586,6 +599,15 @@
                                 Guardia Completa 24 Horas (24)
                             </span>
                             {% endif %}
+                        </td>
+                        <td style="padding: 0.4rem; text-align: center;">
+                            <form action="/compensacion/rotacion/eliminar/{{ r.id_rotacion }}" method="post" onsubmit="return confirm('¿Seguro que deseas revertir esta rotación? Se restaurará el rol original.');" style="margin: 0;">
+                                <input type="hidden" name="anio" value="{{ anio }}">
+                                <input type="hidden" name="mes" value="{{ mes_anexo2 }}">
+                                <button type="submit" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.72rem; cursor: pointer; font-weight: 600;">
+                                    <i class="fa-solid fa-trash-can"></i> Revertir
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
