@@ -53,6 +53,18 @@
         align-items: center;
         gap: 0.3rem;
     }
+    .badge-estado-cesado {
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
 
     .badge-area-seg {
         background: rgba(59, 130, 246, 0.15);
@@ -82,28 +94,43 @@
         font-weight: 700;
     }
 
-    /* Modales */
+    /* Modales Centrados y Adaptativos */
     .modal-backdrop {
         display: none;
         position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.75);
-        backdrop-filter: blur(5px);
-        z-index: 1050;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(10, 15, 29, 0.85);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
         align-items: center;
         justify-content: center;
+        padding: 1.25rem;
+        box-sizing: border-box;
+        overflow-y: auto;
     }
     .modal-card-legajo {
         background: #1e293b;
         border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 16px;
+        border-radius: 18px;
         width: 100%;
         max-width: 820px;
         max-height: 90vh;
         overflow-y: auto;
         padding: 1.75rem;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        box-shadow: 0 25px 60px rgba(0,0,0,0.7);
+        margin: auto;
+        display: flex;
+        flex-direction: column;
         animation: fadeIn 0.2s ease;
+    }
+
+    @media (max-width: 768px) {
+        .modal-card-legajo {
+            max-width: 95vw;
+            padding: 1.25rem;
+        }
     }
 
     .filter-btn-pill {
@@ -116,6 +143,9 @@
         background: rgba(255, 255, 255, 0.05);
         color: var(--text-muted);
         transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
     }
     .filter-btn-pill.active, .filter-btn-pill:hover {
         background: var(--primary);
@@ -177,57 +207,96 @@
     </div>
 
     <!-- TABLA MAESTRA DE LEGAJO DE PERSONAL -->
-    <div class="glass-card" style="padding: 1.5rem;">
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+    <div class="glass-card" style="padding: 1.5rem;">        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
             <div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">PADRÓN OFICIAL</span>
-                    <h3 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">Legajo Maestro de Servidores Penitenciarios</h3>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">Legajo Maestro y Régimen de Personal</h3>
                 </div>
                 <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0 0;">
-                    Registro integral con Fecha de Ingreso al INPE, cómputo de tiempo de servicio, ciclo vacacional y gestión de legajos.
+                    Cómputo exacto del <strong>Día de Generación de Vacaciones</strong>, récord de tiempo de servicio, desplazamientos oficiales e historial de carrera.
                 </p>
             </div>
 
-            <!-- FILTROS Y BUSCADOR -->
+            <!-- BUSCADOR Y NUEVO SERVIDOR -->
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                <div style="display: flex; gap: 0.3rem;">
-                    <button type="button" class="filter-btn-pill active" onclick="filtrarArea('TODOS', this)">Todos</button>
-                    <button type="button" class="filter-btn-pill" onclick="filtrarArea('SEG', this)">Seguridad</button>
-                    <button type="button" class="filter-btn-pill" onclick="filtrarArea('TRA', this)">Tratamiento</button>
-                    <button type="button" class="filter-btn-pill" onclick="filtrarArea('ADM', this)">Administración</button>
-                </div>
-                <input type="text" id="buscadorLegajo" placeholder="Buscar por CIP, DNI o Nombres..." 
-                       style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.85rem; color: #fff; font-size: 0.85rem; width: 240px;"
-                       onkeyup="filtrarTablaLegajo(this.value)">
-                <button onclick="abrirModalNuevoServidor()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+                <input type="text" id="buscadorLegajo" placeholder="Buscar por CIP, DNI, apellidos..." 
+                       style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.85rem; color: #fff; font-size: 0.85rem; width: 260px;"
+                       onkeyup="filtrarTablaLegajoGlobal()">
+                <button onclick="abrirModalNuevoServidor()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
                     <i class="fa-solid fa-user-plus"></i> + Nuevo Servidor
                 </button>
             </div>
+        </div>
+
+        <!-- FILTROS AVANZADOS POR CONDICIÓN Y ÁREA -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; background: rgba(15, 23, 42, 0.6); padding: 0.6rem 0.85rem; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06);">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-right: 0.25rem;">
+                <i class="fa-solid fa-filter"></i> Condición:
+            </div>
+            <button type="button" class="filter-btn-pill btn-cond active" onclick="filtrarCondicion('TODOS', this)">
+                Todos <span class="badge" style="background: rgba(255,255,255,0.15); font-size: 0.65rem;">{{ total }}</span>
+            </button>
+            <button type="button" class="filter-btn-pill btn-cond" onclick="filtrarCondicion('ACTIVO', this)">
+                <i class="fa-solid fa-circle" style="color: #34d399; font-size: 0.45rem;"></i> Activos en Sede <span class="badge" style="background: rgba(16,185,129,0.2); color: #6ee7b7; font-size: 0.65rem;">{{ total - total_desp - total_lic - total_cesados }}</span>
+            </button>
+            <button type="button" class="filter-btn-pill btn-cond" onclick="filtrarCondicion('DESPLAZADO', this)">
+                <i class="fa-solid fa-plane-departure" style="color: #a5b4fc; font-size: 0.65rem;"></i> Desplazados <span class="badge" style="background: rgba(99,102,241,0.25); color: #c7d2fe; font-size: 0.65rem;">{{ total_desp }}</span>
+            </button>
+            <button type="button" class="filter-btn-pill btn-cond" onclick="filtrarCondicion('CESADO', this)">
+                <i class="fa-solid fa-user-slash" style="color: #cbd5e1; font-size: 0.65rem;"></i> Cesados / Extinción CAS <span class="badge" style="background: rgba(148,163,184,0.25); color: #e2e8f0; font-size: 0.65rem;">{{ total_cesados }}</span>
+            </button>
+            <button type="button" class="filter-btn-pill btn-cond" onclick="filtrarCondicion('LICENCIA', this)">
+                <i class="fa-solid fa-clock" style="color: #fbbf24; font-size: 0.65rem;"></i> Licencias / Abandono <span class="badge" style="background: rgba(245,158,11,0.25); color: #fde68a; font-size: 0.65rem;">{{ total_lic }}</span>
+            </button>
+
+            <div style="height: 18px; width: 1px; background: rgba(255,255,255,0.15); margin: 0 0.5rem;"></div>
+
+            <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-right: 0.25rem;">
+                Área:
+            </div>
+            <button type="button" class="filter-btn-pill btn-area active" onclick="filtrarArea('TODOS', this)">
+                Todas
+            </button>
+            <button type="button" class="filter-btn-pill btn-area" onclick="filtrarArea('SEG', this)">
+                Seguridad ({{ total_seg }})
+            </button>
+            <button type="button" class="filter-btn-pill btn-area" onclick="filtrarArea('TRA', this)">
+                Tratamiento ({{ total_tra }})
+            </button>
+            <button type="button" class="filter-btn-pill btn-area" onclick="filtrarArea('ADM', this)">
+                Administración ({{ total_adm }})
+            </button>
         </div>
 
         <div style="overflow-x: auto;">
             <table id="tablaLegajoPersonal" style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
                 <thead>
                     <tr style="background: rgba(15, 23, 42, 0.85); color: #94a3b8; border-bottom: 2px solid var(--border-color); text-align: left;">
-                        <th style="padding: 0.6rem 0.4rem; width: 30px; text-align: center;">N°</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 65px;">CIP</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 75px;">DNI</th>
-                        <th style="padding: 0.6rem 0.75rem;">SERVIDOR PENITENCIARIO</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 110px;">RÉGIMEN / NIVEL</th>
-                        <th style="padding: 0.6rem 0.5rem;">CARGO / FUNCIÓN</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 80px; text-align: center;">ÁREA / HORARIO</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 110px; background: rgba(59, 130, 246, 0.08); color: #93c5fd;">INGRESO INPE</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 120px; background: rgba(16, 185, 129, 0.08); color: #6ee7b7;">TIEMPO SERVICIO</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 110px; background: rgba(168, 85, 247, 0.08); color: #d8b4fe;">CICLO VACACIONAL</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 95px; text-align: center;">ESTADO</th>
-                        <th style="padding: 0.6rem 0.5rem; width: 85px; text-align: center;">ACCIONES</th>
+                        <th style="padding: 0.65rem 0.4rem; width: 30px; text-align: center;">N°</th>
+                        <th style="padding: 0.65rem 0.5rem; width: 65px;">CIP</th>
+                        <th style="padding: 0.65rem 0.5rem; width: 75px;">DNI</th>
+                        <th style="padding: 0.65rem 0.75rem;">SERVIDOR PENITENCIARIO</th>
+                        <th style="padding: 0.65rem 0.5rem; width: 110px;">RÉGIMEN / NIVEL</th>
+                        <th style="padding: 0.65rem 0.5rem;">CARGO / FUNCIÓN</th>
+                        <th style="padding: 0.65rem 0.5rem; width: 75px; text-align: center;">ÁREA</th>
+                        <th style="padding: 0.65rem 0.5rem; width: 100px; background: rgba(59, 130, 246, 0.08); color: #93c5fd;">INGRESO INPE</th>
+                        <th style="padding: 0.65rem 0.6rem; width: 160px; background: rgba(16, 185, 129, 0.12); color: #34d399; border-left: 2px solid #10b981;">
+                            <i class="fa-solid fa-calendar-star"></i> DÍA GENERA VACACIONES
+                        </th>
+                        <th style="padding: 0.65rem 0.5rem; width: 110px; text-align: center;">CONDICIÓN / SEDE</th>
+                        <th style="padding: 0.65rem 0.5rem; width: 140px; text-align: center;">ACCIONES</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for emp in personal %}
-                    <tr class="fila-legajo" data-area="{{ emp.area_clasificacion or 'SEG' }}" style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                    <tr class="fila-legajo" 
+                        data-area="{{ emp.area_clasificacion or 'SEG' }}" 
+                        data-estado="{{ emp.estado_laboral or 'ACTIVO' }}"
+                        data-desplazado="{% if emp.es_desplazado %}1{% else %}0{% endif %}"
+                        style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);" 
+                        onmouseover="this.style.background='rgba(255,255,255,0.02)'" 
+                        onmouseout="this.style.background='transparent'">
                         <td style="padding: 0.55rem 0.4rem; text-align: center; color: var(--text-muted);">{{ loop.index }}</td>
                         <td style="padding: 0.55rem 0.5rem; font-family: monospace; font-weight: 700; color: #93c5fd;">{{ emp.codigo_servidor }}</td>
                         <td style="padding: 0.55rem 0.5rem; font-family: monospace; color: var(--text-muted);">{{ emp.dni or '-' }}</td>
@@ -244,37 +313,53 @@
                         </td>
                         <td style="padding: 0.55rem 0.5rem;">
                             <div style="font-weight: 600; color: #f1f5f9;">{{ emp.cargo_funcion or emp.cargo_estructural or '-' }}</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">{{ emp.cargo_estructural or '' }}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">{{ emp.horario_laboral or '24 x 48' }}</div>
                         </td>
                         <td style="padding: 0.55rem 0.5rem; text-align: center;">
-                            <div>
-                                {% if emp.area_clasificacion == 'SEG' %}
-                                <span class="badge-area-seg">SEG</span>
-                                {% elif emp.area_clasificacion == 'TRA' %}
-                                <span class="badge-area-tra">TRA</span>
-                                {% else %}
-                                <span class="badge-area-adm">ADM</span>
-                                {% endif %}
-                            </div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">{{ emp.horario_laboral or '24 x 48' }}</div>
+                            {% if emp.area_clasificacion == 'SEG' %}
+                            <span class="badge-area-seg">SEG</span>
+                            {% elif emp.area_clasificacion == 'TRA' %}
+                            <span class="badge-area-tra">TRA</span>
+                            {% else %}
+                            <span class="badge-area-adm">ADM</span>
+                            {% endif %}
                         </td>
                         <td style="padding: 0.55rem 0.5rem; background: rgba(59, 130, 246, 0.04);">
                             <div style="font-family: monospace; font-weight: 700; color: #93c5fd;">{{ emp.fecha_ingreso_inpe or '-' }}</div>
-                            <div style="font-size: 0.68rem; color: var(--text-muted);">Oficial INPE</div>
+                            <div style="font-size: 0.68rem; color: #34d399; font-weight: 600;">{{ emp.tiempo_servicio.texto }}</div>
                         </td>
-                        <td style="padding: 0.55rem 0.5rem; background: rgba(16, 185, 129, 0.04);">
-                            <div style="font-weight: 700; color: #34d399;">{{ emp.tiempo_servicio.texto }}</div>
-                            <div style="font-size: 0.68rem; color: var(--text-muted);">{{ emp.tiempo_servicio.anios }} años de servicio</div>
+
+                        <!-- COLUMNA PROTAGONISTA: DÍA GENERA VACACIONES -->
+                        <td style="padding: 0.55rem 0.6rem; background: rgba(16, 185, 129, 0.06); border-left: 2px solid rgba(16, 185, 129, 0.3);">
+                            <div style="font-weight: 800; color: #34d399; font-size: 0.84rem; display: flex; align-items: center; gap: 0.25rem;">
+                                <i class="fa-solid fa-calendar-check" style="color: #10b981;"></i>
+                                {{ emp.vacaciones_info.dia_generacion_texto or 'No Definido' }}
+                            </div>
+                            <div style="margin-top: 0.25rem;">
+                                <span class="badge {{ emp.vacaciones_info.badge_clase or 'badge-success' }}" style="font-size: 0.66rem; padding: 0.15rem 0.45rem;">
+                                    {{ emp.vacaciones_info.estado_generacion or emp.vacaciones_info.periodo }}
+                                </span>
+                            </div>
                         </td>
-                        <td style="padding: 0.55rem 0.5rem; background: rgba(168, 85, 247, 0.04);">
-                            <div style="font-weight: 700; color: #c084fc;">{{ emp.vacaciones_info.periodo }}</div>
-                            <div style="font-size: 0.68rem; color: var(--text-muted);">Próx: {{ emp.vacaciones_info.proximo_ciclo }}</div>
-                        </td>
+
+                        <!-- CONDICIÓN / SEDE -->
                         <td style="padding: 0.55rem 0.5rem; text-align: center;">
                             {% if emp.estado_laboral == 'ACTIVO' %}
                             <span class="badge-estado-activo"><i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i> ACTIVO</span>
                             {% elif emp.estado_laboral == 'DESPLAZADO' %}
-                            <span class="badge-estado-desplazado" title="{{ emp.observaciones or '' }}"><i class="fa-solid fa-plane-departure" style="font-size: 0.65rem;"></i> DESPLAZADO</span>
+                            <div>
+                                <span class="badge-estado-desplazado" title="{{ emp.desplazamiento_texto }}"><i class="fa-solid fa-plane-departure" style="font-size: 0.65rem;"></i> DESPLAZADO</span>
+                                {% if emp.desplazamiento_destino %}
+                                <div style="font-size: 0.67rem; color: #c7d2fe; font-weight: 700; margin-top: 0.2rem;" title="{{ emp.desplazamiento_texto }}">
+                                    A: {{ emp.desplazamiento_destino }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% elif emp.estado_laboral == 'CESADO' %}
+                            <div>
+                                <span class="badge-estado-cesado" title="{{ emp.observaciones or '' }}"><i class="fa-solid fa-user-slash"></i> CESADO</span>
+                                <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.2rem; font-weight: 600;">Extinción CAS</div>
+                            </div>
                             {% elif 'LICENCIA' in (emp.estado_laboral or '') %}
                             <span class="badge-estado-licencia"><i class="fa-solid fa-clock" style="font-size: 0.65rem;"></i> LICENCIA</span>
                             {% elif emp.estado_laboral == 'ABANDONO' %}
@@ -283,17 +368,28 @@
                             <span class="badge-estado-activo">{{ emp.estado_laboral or 'ACTIVO' }}</span>
                             {% endif %}
                         </td>
+
+                        <!-- ACCIONES: VER EXPEDIENTE Y EDITAR -->
                         <td style="padding: 0.55rem 0.5rem; text-align: center;">
-                            <button type="button" onclick="abrirModalEditarEmpleado('{{ emp.id_empleado }}')" 
-                                    style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
-                                <i class="fa-solid fa-pen-to-square"></i> Editar
-                            </button>
+                            <div style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
+                                <a href="/empleados/legajo/{{ emp.id_empleado }}" 
+                                   style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 0.35rem 0.65rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;"
+                                   title="Ver Legajo y Trayectoria de Carrera">
+                                    <i class="fa-solid fa-folder-open"></i> Expediente
+                                </a>
+                                <button type="button" onclick="abrirModalEditarEmpleado('{{ emp.id_empleado }}')" 
+                                        style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.35rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center;"
+                                        title="Editar Ficha Rápida">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+    </div>
 
     </div>
 
@@ -509,25 +605,59 @@
 </div>
 
 <script>
-    function filtrarTablaLegajo(query) {
-        query = query.toLowerCase();
-        const filas = document.querySelectorAll('.fila-legajo');
-        filas.forEach(f => {
-            const texto = f.innerText.toLowerCase();
-            f.style.display = texto.includes(query) ? '' : 'none';
-        });
+    let filtroCondicionActual = 'TODOS';
+    let filtroAreaActual = 'TODOS';
+
+    function filtrarCondicion(condicion, btn) {
+        document.querySelectorAll('.btn-cond').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filtroCondicionActual = condicion;
+        aplicarFiltrosCombinados();
     }
 
     function filtrarArea(area, btn) {
-        document.querySelectorAll('.filter-btn-pill').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.btn-area').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        filtroAreaActual = area;
+        aplicarFiltrosCombinados();
+    }
 
+    function filtrarTablaLegajoGlobal() {
+        aplicarFiltrosCombinados();
+    }
+
+    function aplicarFiltrosCombinados() {
+        const query = (document.getElementById('buscadorLegajo').value || '').toLowerCase().trim();
         const filas = document.querySelectorAll('.fila-legajo');
+
         filas.forEach(f => {
-            if (area === 'TODOS') {
+            const texto = f.innerText.toLowerCase();
+            const area = f.dataset.area || 'SEG';
+            const estado = f.dataset.estado || 'ACTIVO';
+            const esDesplazado = f.dataset.desplazado === '1' || estado === 'DESPLAZADO';
+
+            // 1. Evaluar texto
+            const coincideTexto = !query || texto.includes(query);
+
+            // 2. Evaluar condición
+            let coincideCondicion = true;
+            if (filtroCondicionActual === 'ACTIVO') {
+                coincideCondicion = (estado === 'ACTIVO' && !esDesplazado);
+            } else if (filtroCondicionActual === 'DESPLAZADO') {
+                coincideCondicion = esDesplazado;
+            } else if (filtroCondicionActual === 'CESADO') {
+                coincideCondicion = (estado === 'CESADO');
+            } else if (filtroCondicionActual === 'LICENCIA') {
+                coincideCondicion = estado.includes('LICENCIA') || estado === 'ABANDONO' || estado === 'SANCIONADO';
+            }
+
+            // 3. Evaluar área
+            let coincideArea = (filtroAreaActual === 'TODOS') || (area === filtroAreaActual);
+
+            if (coincideTexto && coincideCondicion && coincideArea) {
                 f.style.display = '';
             } else {
-                f.style.display = (f.dataset.area === area) ? '' : 'none';
+                f.style.display = 'none';
             }
         });
     }

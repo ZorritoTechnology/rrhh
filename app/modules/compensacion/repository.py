@@ -220,18 +220,15 @@ class CompensacionRepository:
         with get_connection() as conn:
             cur = conn.cursor()
 
+            # Asegurar que no existan registros para TRA o ADM en saldos de compensación
             cur.execute("""
-                INSERT OR IGNORE INTO saldos_compensacion (id_empleado, anio_goce, dias_asignados, dias_utilizados, dias_disponibles, observaciones)
-                SELECT DISTINCT a.id_empleado, ?, 
-                       CASE WHEN UPPER(COALESCE(a.estado_laboral, '')) = 'ABANDONO' OR LOWER(COALESCE(a.observaciones, '')) LIKE '%abandono%' THEN 0 ELSE 16 END, 
-                       0, 
-                       CASE WHEN UPPER(COALESCE(a.estado_laboral, '')) = 'ABANDONO' OR LOWER(COALESCE(a.observaciones, '')) LIKE '%abandono%' THEN 0 ELSE 16 END,
-                       CASE WHEN UPPER(COALESCE(a.estado_laboral, '')) = 'ABANDONO' OR LOWER(COALESCE(a.observaciones, '')) LIKE '%abandono%' THEN 'ABANDONO DE SERVICIO' ELSE 'Jornada 24x48 sin consumos registrados' END
-                FROM asistencia_mensual_personal a
-                WHERE a.cargo_funcion = 'AGENTE DE SEGURIDAD'
-                  AND a.area_clasificacion = 'SEG'
-                  AND (a.horario_laboral LIKE '%24%' OR a.horario_laboral LIKE '%25%')
-            """, (anio,))
+                DELETE FROM saldos_compensacion
+                WHERE id_empleado IN (
+                    SELECT id_empleado FROM empleados
+                    WHERE area_clasificacion IN ('TRA', 'ADM')
+                       OR horario_laboral NOT LIKE '%24%'
+                )
+            """)
 
             # Garantizar que personal con abandono tenga 0 saldo disponible
             cur.execute("""
@@ -377,7 +374,20 @@ class CompensacionRepository:
         with get_connection() as conn:
             cur = conn.cursor()
 
-            # Consultar saldo actual
+            # 1. Validar área y horario: Tratamiento y Administrativo NO aplican a compensación 24x48
+            cur.execute("""
+                SELECT area_clasificacion, horario_laboral, apellidos_nombres 
+                FROM empleados 
+                WHERE id_empleado = ?
+            """, (id_empleado,))
+            emp_info = cur.fetchone()
+            if not emp_info or emp_info["area_clasificacion"] != "SEG" or "24" not in str(emp_info["horario_laboral"] or ""):
+                return {
+                    "success": False,
+                    "message": "Operación denegada: La compensación de jornada atípica (Lineamiento LI-001-2023-INPE-OGA y RD N° 037-2026) rige exclusivamente para el personal de Seguridad Penitenciaria con servicio 24x48. El personal de Tratamiento o Administrativo tiene jornada ordinaria (08:00 a 17:00) y no genera compensación."
+                }
+
+            # 2. Consultar saldo oficial asignado en RD N° 037-2026
             cur.execute("""
                 SELECT dias_asignados, dias_utilizados, dias_disponibles
                 FROM saldos_compensacion
@@ -385,23 +395,20 @@ class CompensacionRepository:
             """, (id_empleado, anio_goce))
             saldo_row = cur.fetchone()
 
-            if not saldo_row:
-                saldo_inicial = 16
-                dias_usados = 0
-                dias_disponibles = 16
-                cur.execute("""
-                    INSERT INTO saldos_compensacion (id_empleado, anio_goce, dias_asignados, dias_utilizados, dias_disponibles)
-                    VALUES (?, ?, 16, 0, 16)
-                """, (id_empleado, anio_goce))
-            else:
-                saldo_inicial = saldo_row["dias_asignados"]
-                dias_usados = saldo_row["dias_utilizados"]
-                dias_disponibles = saldo_row["dias_disponibles"]
+            if not saldo_row or saldo_row["dias_asignados"] <= 0:
+                return {
+                    "success": False,
+                    "message": "El servidor no cuenta con días de compensación asignados en la Resolución Directoral N° 037-2026-INPE/ORNOSM."
+                }
+
+            saldo_inicial = saldo_row["dias_asignados"]
+            dias_usados = saldo_row["dias_utilizados"]
+            dias_disponibles = saldo_row["dias_disponibles"]
 
             if dias_solicitados > dias_disponibles:
                 return {
                     "success": False,
-                    "message": f"Días solicitados ({dias_solicitados}) superan el saldo disponible ({dias_disponibles} días)."
+                    "message": f"Días solicitados ({dias_solicitados}) superan el saldo disponible ({dias_disponibles} días) según RD N° 037-2026."
                 }
 
             saldo_restante = dias_disponibles - dias_solicitados

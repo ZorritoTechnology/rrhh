@@ -79,6 +79,13 @@ class DesplazamientoService:
                     ) VALUES (?, ?, 16, ?, ?, ?)
                 """, (id_empleado, comp_anio_fiscal, comp_gozadas_origen, dias_disp, obs_saldo))
 
+            # Sincronizar estado laboral a ACTIVO en padrón de empleados
+            cur.execute("""
+                UPDATE empleados 
+                SET estado_laboral = 'ACTIVO'
+                WHERE id_empleado = ?
+            """, (id_empleado,))
+
             conn.commit()
 
         return {
@@ -125,7 +132,7 @@ class DesplazamientoService:
             observaciones=observaciones
         )
 
-        # Actualizar estado en saldos_compensacion
+        # Actualizar estado en saldos_compensacion y estado_laboral en empleados
         with get_connection() as conn:
             cur = conn.cursor()
             obs_baja = f"DESPLAZADO A {nombre_destino_ext} EL {fecha_desplazamiento}. Doc: {documento_oficial}. Saldo remitido: {comp_saldo} días."
@@ -134,6 +141,13 @@ class DesplazamientoService:
                 SET observaciones = ?
                 WHERE id_empleado = ? AND anio_goce = 2026
             """, (obs_baja, id_empleado))
+
+            cur.execute("""
+                UPDATE empleados
+                SET estado_laboral = 'DESPLAZADO'
+                WHERE id_empleado = ?
+            """, (id_empleado,))
+
             conn.commit()
 
         return {
@@ -213,11 +227,13 @@ class DesplazamientoService:
                         ) VALUES (?, 2026, 16, ?, ?, ?)
                     """, (id_empleado, comp_gozadas_origen, dias_disp, obs_saldo))
 
-                # Actualizar también fecha_ingreso_eepp en empleados si aplica
-                if fecha_presentacion_eepp:
-                    cur.execute("""
-                        UPDATE empleados SET fecha_ingreso_eepp = ? WHERE id_empleado = ?
-                    """, (fecha_presentacion_eepp, id_empleado))
+                # Actualizar también fecha_ingreso_eepp y estado_laboral en empleados si aplica
+                cur.execute("""
+                    UPDATE empleados 
+                    SET estado_laboral = 'ACTIVO',
+                        fecha_ingreso_eepp = COALESCE(?, fecha_ingreso_eepp)
+                    WHERE id_empleado = ?
+                """, (fecha_presentacion_eepp if fecha_presentacion_eepp else None, id_empleado))
             else:
                 obs_baja = f"DESPLAZADO A {nombre_destino_ext} EL {fecha_desplazamiento}. Doc: {documento_oficial}"
                 cur.execute("""
@@ -225,6 +241,11 @@ class DesplazamientoService:
                     SET observaciones = ?
                     WHERE id_empleado = ? AND anio_goce = 2026
                 """, (obs_baja, id_empleado))
+                cur.execute("""
+                    UPDATE empleados 
+                    SET estado_laboral = 'DESPLAZADO'
+                    WHERE id_empleado = ?
+                """, (id_empleado,))
 
             conn.commit()
 

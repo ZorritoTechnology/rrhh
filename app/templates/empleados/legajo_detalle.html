@@ -1,0 +1,1088 @@
+{% extends "base.html" %}
+
+{% block title %}Expediente y Legajo Personal - {{ emp.apellidos_nombres }} - RRHH NexGen{% endblock %}
+{% block header_title %}Legajo Personal y Carrera Penitenciaria{% endblock %}
+
+{% block content %}
+<style>
+    .legajo-hero {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 1.75rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .legajo-hero::before {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .vacaciones-destacado-card {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 95, 70, 0.25));
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.15);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .tab-nav-container {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .tab-nav-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text-muted);
+        padding: 0.65rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .tab-nav-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .tab-nav-btn.active {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: #fff;
+        border-color: #3b82f6;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    }
+
+    .timeline-container {
+        position: relative;
+        padding-left: 2rem;
+        margin-top: 1rem;
+    }
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background: rgba(255, 255, 255, 0.12);
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.75rem;
+    }
+    .timeline-dot {
+        position: absolute;
+        left: -2rem;
+        top: 4px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        border: 2px solid #0f172a;
+    }
+    .timeline-card {
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        backdrop-filter: blur(8px);
+        transition: transform 0.15s ease;
+    }
+    .timeline-card:hover {
+        transform: translateX(4px);
+        border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    /* Modal Centrado Adaptativo */
+    .modal-adaptive-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(10, 15, 29, 0.85);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+        box-sizing: border-box;
+    }
+    .modal-adaptive-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 18px;
+        width: 100%;
+        max-width: 650px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 1.75rem;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .form-grid-2col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+    }
+    @media (max-width: 640px) {
+        .form-grid-2col {
+            grid-template-columns: 1fr;
+        }
+        .tab-nav-btn {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+        }
+    }
+    .badge-estado-cesado {
+        background: rgba(239, 68, 68, 0.18);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+</style>
+
+<div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 1300px; margin: 0 auto;">
+
+    <!-- BARRA SUPERIOR DE NAVEGACIÓN -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <a href="/empleados" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 700; background: rgba(255,255,255,0.05); padding: 0.5rem 0.9rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Padrón de Personal
+        </a>
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <a href="/empleados/record-laboral/{{ emp.id_empleado }}" style="background: rgba(239, 68, 68, 0.18); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Récord Liquidación CAS
+            </a>
+            <button onclick="abrirModalEditarEmpleado('{{ emp.id_empleado }}')" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-pen-to-square"></i> Modificar Ficha Personal
+            </button>
+            <button onclick="window.print()" style="background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-print"></i> Imprimir Expediente
+            </button>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIONES -->
+    {% if mensaje %}
+    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #fff; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.4rem; color: #34d399;"></i>
+        <div>
+            <div style="font-weight: 700;">Operación Exitosa</div>
+            <div style="font-size: 0.85rem; color: #cbd5e1;">{{ mensaje }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fff; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.4rem; color: #f87171;"></i>
+        <div>
+            <div style="font-weight: 700;">Atención / Error</div>
+            <div style="font-size: 0.85rem; color: #cbd5e1;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- HERO PROFILE HEADER -->
+    <div class="legajo-hero">
+        <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 1.5rem; align-items: center;">
+            <!-- AVATAR -->
+            <div style="width: 80px; height: 80px; border-radius: 20px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #fff; font-weight: 800; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
+                {{ emp.apellidos_nombres[:2] }}
+            </div>
+
+            <!-- DATOS PRINCIPALES -->
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <h2 style="font-size: 1.4rem; font-weight: 800; color: #fff; margin: 0;">{{ emp.apellidos_nombres }}</h2>
+                    {% if emp.estado_laboral == 'ACTIVO' %}
+                    <span class="badge-estado-activo"><i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i> ACTIVO EN SEDE</span>
+                    {% elif emp.estado_laboral == 'CESADO' %}
+                    <span class="badge-estado-cesado"><i class="fa-solid fa-user-xmark"></i> CESADO / EXTINCIÓN CONTRATO CAS</span>
+                    {% elif emp.estado_laboral == 'DESPLAZADO' %}
+                    <span class="badge-estado-desplazado"><i class="fa-solid fa-plane-departure"></i> DESPLAZADO</span>
+                    {% elif 'LICENCIA' in (emp.estado_laboral or '') %}
+                    <span class="badge-estado-licencia"><i class="fa-solid fa-clock"></i> LICENCIA</span>
+                    {% elif emp.estado_laboral == 'ABANDONO' %}
+                    <span class="badge-estado-abandono"><i class="fa-solid fa-triangle-exclamation"></i> ABANDONO</span>
+                    {% else %}
+                    <span class="badge-estado-activo">{{ emp.estado_laboral }}</span>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 1.25rem; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; font-size: 0.82rem; color: #cbd5e1;">
+                    <span><strong style="color: #93c5fd;">CIP:</strong> {{ emp.codigo_servidor }}</span>
+                    <span><strong style="color: #93c5fd;">DNI:</strong> {{ emp.dni or '-' }}</span>
+                    <span><strong style="color: #93c5fd;">Régimen:</strong> {{ emp.regimen_nombre or 'Ley N° 29709' }} ({{ emp.nivel or 'T1' }})</span>
+                    <span><strong style="color: #93c5fd;">Cargo:</strong> {{ emp.cargo_funcion or emp.cargo_estructural or 'AGENTE DE SEGURIDAD' }}</span>
+                    <span><strong style="color: #93c5fd;">Área:</strong> {{ emp.area_clasificacion }} ({{ emp.horario_laboral or '24 x 48' }})</span>
+                </div>
+
+                <!-- ALERTA SI ES CESADO / EXTINCIÓN CAS -->
+                {% if emp.estado_laboral == 'CESADO' or record_laboral %}
+                <div style="margin-top: 0.75rem; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.82rem; color: #fca5a5; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-file-contract" style="color: #ef4444; font-size: 1.1rem;"></i>
+                        <span><strong>Cese Laboral / Extinción de Contrato D.L. 1057 CAS:</strong> Servidor no computable en reportes de asistencia 2026. Se liquidan vacaciones truncas generadas.</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <a href="/empleados/record-laboral/{{ emp.id_empleado }}" style="background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <i class="fa-solid fa-pen-to-square"></i> Editar Récord
+                        </a>
+                        <a href="/empleados/record-laboral/{{ emp.id_empleado }}/imprimir" target="_blank" style="background: rgba(255,255,255,0.15); color: #fff; text-decoration: none; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 6px; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <i class="fa-solid fa-print"></i> Imprimir Récord Oficial
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- ALERTA SI ESTÁ DESPLAZADO -->
+                {% if emp.es_desplazado %}
+                <div style="margin-top: 0.75rem; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 0.8rem; color: #c7d2fe; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-circle-info" style="color: #818cf8;"></i>
+                    <span><strong>Servidor Desplazado:</strong> {{ emp.desplazamiento_texto }}. Documento: <strong>{{ emp.desplazamiento_doc }}</strong>.</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- TIEMPO SERVICIO SUMMARY -->
+            <div style="text-align: right; background: rgba(15, 23, 42, 0.5); padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+                <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Tiempo de Servicio INPE</div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: #34d399; margin-top: 0.2rem;">{{ emp.tiempo_servicio.anios }} Años</div>
+                <div style="font-size: 0.75rem; color: #cbd5e1;">Ingreso: <strong>{{ emp.fecha_ingreso_inpe or 'S/R' }}</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN CLAVE PROTAGONISTA: CÓMPUTO Y DÍA DE GENERACIÓN DE VACACIONES -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+        
+        <div class="vacaciones-destacado-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span style="background: rgba(16, 185, 129, 0.25); color: #34d399; font-size: 0.72rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase;">
+                        <i class="fa-solid fa-calendar-star"></i> DÍA DE GENERACIÓN DE VACACIONES ANUALES
+                    </span>
+                    <h3 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin: 0.5rem 0 0.2rem 0;">
+                        {{ vac_info.dia_generacion_texto or 'No Definido' }}
+                    </h3>
+                    <p style="font-size: 0.85rem; color: #a7f3d0; margin: 0;">
+                        Conforme al récord de ingreso oficial al INPE del <strong>{{ emp.fecha_ingreso_inpe or 'S/F' }}</strong>.
+                    </p>
+                </div>
+
+                <div style="text-align: right;">
+                    <div style="font-size: 0.72rem; color: #a7f3d0; font-weight: 700; text-transform: uppercase;">Estado del Ciclo</div>
+                    <div style="margin-top: 0.25rem;">
+                        <span class="badge {{ vac_info.badge_clase or 'badge-success' }}" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+                            {{ vac_info.estado_generacion or 'Ciclo Activo' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(16, 185, 129, 0.25);">
+                <div>
+                    <div style="font-size: 0.7rem; color: #a7f3d0; text-transform: uppercase; font-weight: 700;">Ciclo Anual Vigente</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #fff; font-family: monospace;">{{ vac_info.periodo }}</div>
+                    <div style="font-size: 0.72rem; color: #cbd5e1;">Derecho a 30 días continuos</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.7rem; color: #a7f3d0; text-transform: uppercase; font-weight: 700;">Próxima Fecha de Cumplimiento</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #6ee7b7; font-family: monospace;">{{ vac_info.proximo_ciclo }}</div>
+                    <div style="font-size: 0.72rem; color: #cbd5e1;">{{ vac_info.dias_faltantes }} días para nuevo ciclo</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.7rem; color: #a7f3d0; text-transform: uppercase; font-weight: 700;">Marco Legal Institucional</div>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Art. 36 Ley 29709 / DL 276</div>
+                    <div style="font-size: 0.72rem; color: #cbd5e1;">12 meses ininterrumpidos</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SALDO COMPENSACIÓN 24x48 O JORNADA ORDINARIA -->
+        <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+            {% if compensacion_saldo.aplica %}
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px;">COMPENSACIÓN 24x48</span>
+                    <span style="font-size: 0.72rem; color: #34d399; font-weight: 700;">RD N° 037-2026</span>
+                </div>
+                <h4 style="font-size: 1.1rem; color: #fff; margin: 0.4rem 0 0.2rem 0;">Saldo Anexo 03 (LI-001)</h4>
+                <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+                    <span style="font-size: 2.2rem; font-weight: 900; color: #60a5fa;">{{ compensacion_saldo.dias_disponibles }}</span>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">/ {{ compensacion_saldo.dias_asignados }} días asignados</span>
+                </div>
+                <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 0.25rem;">
+                    Días 24 hrs utilizados este año: <strong>{{ compensacion_saldo.dias_utilizados }}</strong>
+                </div>
+            </div>
+
+            <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 0.5rem;">
+                <a href="/compensacion/solicitud" class="btn btn-sm btn-primary" style="flex: 1; text-align: center; text-decoration: none;">
+                    <i class="fa-solid fa-paper-plane"></i> Nueva Solicitud
+                </a>
+                <a href="/compensacion" class="btn btn-sm btn-outline" style="text-decoration: none;">
+                    Ver Matriz
+                </a>
+            </div>
+            {% else %}
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px;">RÉGIMEN ORDINARIO</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">Horario 08:00 - 17:00</span>
+                </div>
+                <h4 style="font-size: 1.05rem; color: #fff; margin: 0.4rem 0 0.2rem 0;">No Aplica Compensación 24x48</h4>
+                <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0.5rem; line-height: 1.4;">
+                    El servidor pertenece al área de <strong>{{ emp.area_clasificacion }} ({% if emp.area_clasificacion == 'TRA' %}Tratamiento{% elif emp.area_clasificacion == 'ADM' %}Administración{% else %}{{ emp.area_clasificacion }}{% endif %})</strong> con jornada laboral ordinaria.
+                </div>
+                <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; line-height: 1.3;">
+                    Conforme al <strong>Lineamiento LI-001-2023-INPE-OGA</strong> y <strong>RD N° 037-2026</strong>, la compensación de jornada atípica rige exclusivamente para el personal de Seguridad Penitenciaria con servicio 24x48.
+                </div>
+            </div>
+
+            <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08);">
+                <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.5rem; font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                    <i class="fa-solid fa-ban" style="color: #64748b; margin-right: 0.3rem;"></i> Sin saldo ni solicitudes Anexo 01 (No genera)
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- PESTAÑAS DE CONTENIDO DETALLADO -->
+    <div class="glass-card" style="padding: 1.5rem;">
+        
+        <div class="tab-nav-container">
+            <button class="tab-nav-btn active" onclick="cambiarTabLegajo('carrera', this)">
+                <i class="fa-solid fa-timeline"></i> 1. Historial de Carrera & Concursos
+                <span class="badge" style="background: rgba(255,255,255,0.15); font-size: 0.7rem;">{{ historial|length }}</span>
+            </button>
+            <button class="tab-nav-btn" onclick="cambiarTabLegajo('sanciones', this)">
+                <i class="fa-solid fa-gavel"></i> 2. Historial Disciplinario (Sanciones)
+                <span class="badge" style="background: rgba(239, 68, 68, 0.25); color: #fca5a5; font-size: 0.7rem;">{{ sanciones|length }}</span>
+            </button>
+            <button class="tab-nav-btn" onclick="cambiarTabLegajo('desplazamientos', this)">
+                <i class="fa-solid fa-route"></i> 3. Desplazamientos & Traslados
+                <span class="badge" style="background: rgba(99, 102, 241, 0.25); color: #c7d2fe; font-size: 0.7rem;">{{ desplazamientos|length }}</span>
+            </button>
+            <button class="tab-nav-btn" onclick="cambiarTabLegajo('vacaciones_rec', this)">
+                <i class="fa-solid fa-umbrella-beach"></i> 4. Récord Vacacional Gozado
+                <span class="badge" style="background: rgba(16, 185, 129, 0.25); color: #6ee7b7; font-size: 0.7rem;">{{ vacaciones_gozadas|length }}</span>
+            </button>
+            {% if compensacion_saldo.aplica %}
+            <button class="tab-nav-btn" onclick="cambiarTabLegajo('compensaciones_rec', this)">
+                <i class="fa-solid fa-clock-rotate-left"></i> 5. Solicitudes 24x48
+                <span class="badge" style="background: rgba(59, 130, 246, 0.25); color: #93c5fd; font-size: 0.7rem;">{{ compensacion_solicitudes|length }}</span>
+            </button>
+            {% else %}
+            <button class="tab-nav-btn" onclick="cambiarTabLegajo('compensaciones_rec', this)" style="opacity: 0.65;">
+                <i class="fa-solid fa-clock-rotate-left"></i> 5. Compensación 24x48
+                <span class="badge" style="background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 0.7rem;">N/A</span>
+            </button>
+            {% endif %}
+            <button class="tab-nav-btn" onclick="cambiarTabLegajo('record_cas', this)">
+                <i class="fa-solid fa-file-invoice-dollar"></i> 6. Récord Liquidación CAS
+                {% if record_laboral %}
+                <span class="badge" style="background: rgba(239, 68, 68, 0.35); color: #fca5a5; font-size: 0.7rem;">Registrado</span>
+                {% else %}
+                <span class="badge" style="background: rgba(255, 255, 255, 0.1); font-size: 0.7rem;">Nuevo</span>
+                {% endif %}
+            </button>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 1: HISTORIAL DE CARRERA Y CONCURSOS -->
+        <!-- ========================================================================= -->
+        <div id="tab-carrera" class="seccion-tab" style="margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">Línea de Tiempo de Carrera Penitenciaria</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                        Registro histórico de ingreso al INPE, regímenes laborales previos (CAS / 276), concursos de méritos a Ley N° 29709, ascensos y asignación de cargos.
+                    </p>
+                </div>
+                <button onclick="abrirModalHitoCarrera()" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-plus"></i> + Registrar Hito / Concurso / Ascenso
+                </button>
+            </div>
+
+            {% if historial %}
+            <div class="timeline-container">
+                {% for h in historial %}
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: {% if 'CONCURSO' in h.tipo_evento %}#f59e0b{% elif 'INGRESO' in h.tipo_evento %}#10b981{% elif 'ASCENSO' in h.tipo_evento %}#8b5cf6{% else %}#3b82f6{% endif %}; color: #fff;">
+                        {% if 'CONCURSO' in h.tipo_evento %}
+                        <i class="fa-solid fa-award"></i>
+                        {% elif 'INGRESO' in h.tipo_evento %}
+                        <i class="fa-solid fa-door-open"></i>
+                        {% elif 'ASCENSO' in h.tipo_evento %}
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                        {% else %}
+                        <i class="fa-solid fa-check"></i>
+                        {% endif %}
+                    </div>
+
+                    <div class="timeline-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <span style="font-size: 0.72rem; font-weight: 800; color: #93c5fd; background: rgba(59, 130, 246, 0.15); padding: 0.2rem 0.5rem; border-radius: 4px;">
+                                    {{ h.tipo_evento }}
+                                </span>
+                                <span style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">
+                                    <i class="fa-regular fa-calendar"></i> {{ h.fecha_evento }}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.75rem; color: #cbd5e1; font-weight: 600;">
+                                Doc: <span style="color: #60a5fa;">{{ h.resolucion_documento }}</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #fff; font-weight: 700;">
+                            {{ h.cargo_funcion or 'Servidor Penitenciario' }} 
+                            {% if h.nivel_cargo %}<span style="color: #93c5fd;">(Nivel {{ h.nivel_cargo }})</span>{% endif %}
+                            - <span style="color: #34d399;">{{ h.regimen_laboral or 'Ley N° 29709' }}</span>
+                        </div>
+
+                        {% if h.detalles %}
+                        <div style="margin-top: 0.4rem; font-size: 0.8rem; color: #cbd5e1; line-height: 1.4;">
+                            {{ h.detalles }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                <i class="fa-solid fa-timeline" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.75rem;"></i>
+                <div style="font-weight: 600;">No se registran eventos adicionales de carrera aún.</div>
+                <div style="font-size: 0.8rem; margin-top: 0.25rem;">Haga clic en "+ Registrar Hito / Concurso" para agregar la trayectoria laboral de este servidor.</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 2: HISTORIAL DISCIPLINARIO (SANCIONES) -->
+        <!-- ========================================================================= -->
+        <div id="tab-sanciones" class="seccion-tab" style="display: none; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">Historial Disciplinario y Sanciones</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                        Registro de resoluciones disciplinarias conforme a la Ley N° 29709 y Tribunal Disciplinario (amonestaciones, suspensiones, ceses temporales).
+                    </p>
+                </div>
+                <button onclick="abrirModalSancion()" style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-gavel"></i> + Registrar Sanción Disciplinaria
+                </button>
+            </div>
+
+            {% if sanciones %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color); text-align: left;">
+                            <th style="padding: 0.75rem;">TIPO SANCIÓN</th>
+                            <th style="padding: 0.75rem;">RESOLUCIÓN / DOCUMENTO</th>
+                            <th style="padding: 0.75rem;">PERIODO (DESDE - HASTA)</th>
+                            <th style="padding: 0.75rem; text-align: center;">DÍAS</th>
+                            <th style="padding: 0.75rem;">RESUELVE EN</th>
+                            <th style="padding: 0.75rem;">MOTIVO / OBSERVACIONES</th>
+                            <th style="padding: 0.75rem; text-align: center;">ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sanciones %}
+                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                            <td style="padding: 0.75rem; font-weight: 700; color: #f87171;">
+                                <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.3rem;"></i>
+                                {{ s.tipo_sancion }}
+                            </td>
+                            <td style="padding: 0.75rem; font-family: monospace; font-weight: 700; color: #fff;">
+                                {{ s.documento_resolucion }}
+                            </td>
+                            <td style="padding: 0.75rem; font-family: monospace; color: #cbd5e1;">
+                                {{ s.fecha_inicio or '-' }} al {{ s.fecha_fin or '-' }}
+                            </td>
+                            <td style="padding: 0.75rem; text-align: center; font-weight: 800; color: #fca5a5;">
+                                {{ s.dias_sancion }} días
+                            </td>
+                            <td style="padding: 0.75rem; color: var(--text-muted);">
+                                {{ s.tiempo_que_resuelve or 'EN DIAS' }}
+                            </td>
+                            <td style="padding: 0.75rem; color: #cbd5e1; font-size: 0.78rem;">
+                                {{ s.observaciones or s.motivo_falta or '-' }}
+                            </td>
+                            <td style="padding: 0.75rem; text-align: center;">
+                                <span class="badge badge-error" style="font-size: 0.72rem;">{{ s.estado_sancion or 'EJECUTADA' }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                <i class="fa-solid fa-shield-halved" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.75rem; color: #10b981;"></i>
+                <div style="font-weight: 700; color: #34d399;">Legajo Sin Sanciones Disciplinarias</div>
+                <div style="font-size: 0.8rem; margin-top: 0.25rem;">El servidor penitenciario cuenta con foja de conducta intachable en este establecimiento.</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 3: DESPLAZAMIENTOS Y TRASLADOS -->
+        <!-- ========================================================================= -->
+        <div id="tab-desplazamientos" class="seccion-tab" style="display: none; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">Movimientos de Desplazamiento (Anexo 06)</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                        Historial de rotaciones, traslados entre establecimientos penitenciarios e incorporación con saldo remitido.
+                    </p>
+                </div>
+                <a href="/desplazamientos" class="btn btn-sm btn-outline" style="text-decoration: none;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Gestión de Desplazamientos
+                </a>
+            </div>
+
+            {% if desplazamientos %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color); text-align: left;">
+                            <th style="padding: 0.75rem;">CONSTANCIA OFICIAL</th>
+                            <th style="padding: 0.75rem;">TIPO MOVIMIENTO</th>
+                            <th style="padding: 0.75rem;">ORIGEN / DESTINO</th>
+                            <th style="padding: 0.75rem;">FECHA TRASLADO</th>
+                            <th style="padding: 0.75rem;">DOCUMENTO / RESOLUCIÓN</th>
+                            <th style="padding: 0.75rem; text-align: center;">SALDO VAC. REMITIDO</th>
+                            <th style="padding: 0.75rem;">OBSERVACIONES / DETALLE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in desplazamientos %}
+                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                            <td style="padding: 0.75rem; font-family: monospace; font-weight: 700; color: #f59e0b;">
+                                {{ d.numero_constancia_oficial or 'ANEXO 06' }}
+                            </td>
+                            <td style="padding: 0.75rem;">
+                                {% if d.tipo_movimiento == 'BAJA_SALIDA' %}
+                                <span class="badge-estado-desplazado"><i class="fa-solid fa-plane-departure"></i> TRASLADO / BAJA</span>
+                                {% else %}
+                                <span class="badge-estado-activo"><i class="fa-solid fa-plane-arrival"></i> ALTA / RECEPCIÓN</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.75rem; font-weight: 700; color: #fff;">
+                                {% if d.tipo_movimiento == 'BAJA_SALIDA' %}
+                                Destino: <span style="color: #93c5fd;">{{ d.nombre_destino_ext }}</span>
+                                {% else %}
+                                Procedencia: <span style="color: #6ee7b7;">{{ d.nombre_origen_ext }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.75rem; font-family: monospace; color: #cbd5e1;">
+                                {{ d.fecha_desplazamiento }}
+                            </td>
+                            <td style="padding: 0.75rem; font-family: monospace; color: #cbd5e1; font-weight: 600;">
+                                {{ d.documento_oficial }}
+                            </td>
+                            <td style="padding: 0.75rem; text-align: center; font-weight: 800; color: #34d399;">
+                                {{ d.vacaciones_saldo_origen or 0 }} días
+                            </td>
+                            <td style="padding: 0.75rem; color: #cbd5e1; font-size: 0.78rem;">
+                                {{ d.observaciones or '-' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                <i class="fa-solid fa-location-dot" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.75rem;"></i>
+                <div style="font-weight: 600;">No registra desplazamientos externos registrados.</div>
+                <div style="font-size: 0.8rem; margin-top: 0.25rem;">El servidor se encuentra asignado de forma permanente en EP Mujeres Iquitos.</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 4: RÉCORD VACACIONAL GOZADO -->
+        <!-- ========================================================================= -->
+        <div id="tab-vacaciones_rec" class="seccion-tab" style="display: none; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">Historial de Vacaciones Gozadas (Libro Oficial)</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                        Días de descanso vacacional ejecutados y reportados mensualmente en la Hoja 5 de Asistencia.
+                    </p>
+                </div>
+                <a href="/vacaciones" class="btn btn-sm btn-outline" style="text-decoration: none;">
+                    Ver Módulo Vacaciones
+                </a>
+            </div>
+
+            {% if vacaciones_gozadas %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color); text-align: left;">
+                            <th style="padding: 0.75rem;">PERIODO VACACIONAL</th>
+                            <th style="padding: 0.75rem;">FECHA INICIO</th>
+                            <th style="padding: 0.75rem;">FECHA TÉRMINO</th>
+                            <th style="padding: 0.75rem; text-align: center;">DÍAS GOZADOS</th>
+                            <th style="padding: 0.75rem;">MES / AÑO REPORTE</th>
+                            <th style="padding: 0.75rem;">OBSERVACIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in vacaciones_gozadas %}
+                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                            <td style="padding: 0.75rem; font-weight: 700; color: #6ee7b7;">{{ v.periodo_vacacional }}</td>
+                            <td style="padding: 0.75rem; font-family: monospace; color: #cbd5e1;">{{ v.fecha_inicio }}</td>
+                            <td style="padding: 0.75rem; font-family: monospace; color: #cbd5e1;">{{ v.fecha_termino }}</td>
+                            <td style="padding: 0.75rem; text-align: center; font-weight: 800; color: #34d399;">{{ v.dias_gozados }} días</td>
+                            <td style="padding: 0.75rem; color: var(--text-muted);">Mes {{ v.mes }}/{{ v.anio }}</td>
+                            <td style="padding: 0.75rem; color: #cbd5e1; font-size: 0.78rem;">{{ v.observaciones or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                <i class="fa-solid fa-umbrella-beach" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.75rem;"></i>
+                <div style="font-weight: 600;">Sin descansos vacacionales registrados en el presente periodo.</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 5: SOLICITUDES COMPENSACIÓN 24x48 -->
+        <!-- ========================================================================= -->
+        <div id="tab-compensaciones_rec" class="seccion-tab" style="display: none; margin-top: 1.5rem;">
+            {% if compensacion_saldo.aplica %}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">Papeletas y Solicitudes 24x48 (Anexo 01)</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                        Compensaciones solicitadas con mínimo 5 días de anticipación según Lineamiento LI-001-2023-INPE-OGA y RD N° 037-2026.
+                    </p>
+                </div>
+                <a href="/compensacion/solicitud" class="btn btn-sm btn-primary" style="text-decoration: none;">
+                    + Registrar Solicitud
+                </a>
+            </div>
+
+            {% if compensacion_solicitudes %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="background: rgba(15, 23, 42, 0.8); color: #94a3b8; border-bottom: 2px solid var(--border-color); text-align: left;">
+                            <th style="padding: 0.75rem;">CÓDIGO PAPELETA</th>
+                            <th style="padding: 0.75rem;">FECHA SOLICITUD</th>
+                            <th style="padding: 0.75rem;">TURNO (FECHA INICIO)</th>
+                            <th style="padding: 0.75rem; text-align: center;">DÍAS</th>
+                            <th style="padding: 0.75rem; text-align: center;">ESTADO</th>
+                            <th style="padding: 0.75rem; text-align: center;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in compensacion_solicitudes %}
+                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                            <td style="padding: 0.75rem; font-family: monospace; font-weight: 700; color: #93c5fd;">{{ c.codigo_papeleta }}</td>
+                            <td style="padding: 0.75rem; font-family: monospace; color: #cbd5e1;">{{ c.fecha_solicitud }}</td>
+                            <td style="padding: 0.75rem; font-family: monospace; color: #fff; font-weight: 600;">{{ c.fecha_inicio }}</td>
+                            <td style="padding: 0.75rem; text-align: center; font-weight: 800; color: #60a5fa;">{{ c.dias_solicitados }} turno (24 hrs)</td>
+                            <td style="padding: 0.75rem; text-align: center;">
+                                <span class="badge badge-success">{{ c.estado }}</span>
+                            </td>
+                            <td style="padding: 0.75rem; text-align: center;">
+                                <a href="/compensacion/papeleta/{{ c.id_solicitud }}" target="_blank" class="btn btn-sm btn-outline" style="text-decoration: none; padding: 0.25rem 0.5rem; font-size: 0.72rem;">
+                                    <i class="fa-solid fa-file-pdf"></i> Imprimir Papeleta
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                <i class="fa-solid fa-clock-rotate-left" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.75rem;"></i>
+                <div style="font-weight: 600;">Sin solicitudes de compensación registradas en el 2026.</div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div style="text-align: center; padding: 3rem 1.5rem; background: rgba(15, 23, 42, 0.4); border-radius: 14px; border: 1px dashed rgba(255, 255, 255, 0.1);">
+                <i class="fa-solid fa-user-clock" style="font-size: 2.5rem; color: #94a3b8; opacity: 0.4; margin-bottom: 0.75rem;"></i>
+                <h4 style="font-size: 1.1rem; color: #fff; margin: 0 0 0.3rem 0;">No Corresponde Compensación 24x48</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 600px; margin: 0 auto;">
+                    Este servidor está asignado al área de <strong>{{ emp.area_clasificacion }} ({% if emp.area_clasificacion == 'TRA' %}Tratamiento{% elif emp.area_clasificacion == 'ADM' %}Administración{% else %}{{ emp.area_clasificacion }}{% endif %})</strong> con jornada laboral ordinaria (08:00 a 17:00). La compensación de jornada atípica rige exclusivamente para el personal de Seguridad Penitenciaria con turnos de 24x48 horas (Lineamiento LI-001-2023-INPE-OGA y RD N° 037-2026).
+                </p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 6: RÉCORD LABORAL PARA PAGO DE LIQUIDACIÓN D.L. Nº 1057 CAS -->
+        <!-- ========================================================================= -->
+        <div id="tab-record_cas" class="seccion-tab" style="display: none; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">
+                        <i class="fa-solid fa-file-invoice-dollar" style="color: #ef4444;"></i> Récord Laboral para Pago de Liquidación (D.L. Nº 1057 CAS)
+                    </h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                        Documento oficial emitido al término o extinción de contrato, o por cambio de régimen laboral (concurso a Ley N° 29709) para el cálculo de vacaciones truncas y beneficios sociales.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <a href="/empleados/record-laboral/{{ emp.id_empleado }}" class="btn btn-sm btn-primary" style="text-decoration: none;">
+                        <i class="fa-solid fa-pen-to-square"></i> Editar / Formular Récord
+                    </a>
+                    {% if record_laboral %}
+                    <a href="/empleados/record-laboral/{{ emp.id_empleado }}/imprimir" target="_blank" class="btn btn-sm btn-outline" style="text-decoration: none;">
+                        <i class="fa-solid fa-print"></i> Imprimir Formato Oficial (PDF)
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if record_laboral %}
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                <!-- DATOS GENERALES DEL CESE -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div>
+                        <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Motivo de Cese / Documento</div>
+                        <div style="font-weight: 800; color: #f87171; font-size: 0.92rem; margin-top: 0.15rem;">
+                            {{ record_laboral.motivo_cese or 'EXTINCIÓN DE CONTRATO' }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #cbd5e1; font-family: monospace;">{{ record_laboral.documento_sustento or '-' }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Fecha Ingreso Entidad</div>
+                        <div style="font-weight: 700; color: #fff; font-size: 0.9rem; margin-top: 0.15rem; font-family: monospace;">
+                            {{ record_laboral.fecha_ingreso_entidad or '-' }}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Último Día Laborado</div>
+                        <div style="font-weight: 700; color: #60a5fa; font-size: 0.9rem; margin-top: 0.15rem; font-family: monospace;">
+                            {{ record_laboral.ultimo_dia_laborado or '-' }}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Fecha Cese Efectivo</div>
+                        <div style="font-weight: 800; color: #ef4444; font-size: 0.9rem; margin-top: 0.15rem; font-family: monospace;">
+                            {{ record_laboral.fecha_cese_laboral or '-' }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN A: VACACIONES -->
+                <div>
+                    <h4 style="font-size: 0.9rem; font-weight: 800; color: #93c5fd; margin: 0 0 0.5rem 0; display: flex; align-items: center; justify-content: space-between;">
+                        <span>A. VACACIONES GENERADAS POR AÑO DE SERVICIOS</span>
+                        <span style="font-size: 0.8rem; color: #34d399; font-weight: 800; background: rgba(16, 185, 129, 0.15); padding: 0.2rem 0.6rem; border-radius: 6px;">
+                            Total Vacaciones Truncas / No Gozadas: {{ record_laboral.vacaciones_no_gozadas_truncas or 0 }} Días
+                        </span>
+                    </h4>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                            <thead>
+                                <tr style="background: rgba(30, 41, 59, 0.8); color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left;">
+                                    <th style="padding: 0.6rem;">N°</th>
+                                    <th style="padding: 0.6rem;">PERIODO</th>
+                                    <th style="padding: 0.6rem;">FECHA INICIO</th>
+                                    <th style="padding: 0.6rem;">FECHA FIN</th>
+                                    <th style="padding: 0.6rem; text-align: center;">GOZADAS (DÍAS)</th>
+                                    <th style="padding: 0.6rem; text-align: center;">PENDIENTES (DÍAS)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding: 0.6rem; font-weight: 700;">1</td>
+                                    <td style="padding: 0.6rem; font-weight: 700; color: #cbd5e1;">{{ record_laboral.vacaciones_periodo_1_anio or '2024' }}</td>
+                                    <td style="padding: 0.6rem; font-family: monospace;">{{ record_laboral.vacaciones_periodo_1_ini or 'x' }}</td>
+                                    <td style="padding: 0.6rem; font-family: monospace;">{{ record_laboral.vacaciones_periodo_1_fin or 'x' }}</td>
+                                    <td style="padding: 0.6rem; text-align: center;">{{ record_laboral.vacaciones_periodo_1_gozadas or 0 }}</td>
+                                    <td style="padding: 0.6rem; text-align: center; font-weight: 700; color: #cbd5e1;">{{ record_laboral.vacaciones_periodo_1_pendientes or 0 }}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding: 0.6rem; font-weight: 700;">2</td>
+                                    <td style="padding: 0.6rem; font-weight: 700; color: #cbd5e1;">{{ record_laboral.vacaciones_periodo_2_anio or '2025' }}</td>
+                                    <td style="padding: 0.6rem; font-family: monospace;">{{ record_laboral.vacaciones_periodo_2_ini or '-' }}</td>
+                                    <td style="padding: 0.6rem; font-family: monospace;">{{ record_laboral.vacaciones_periodo_2_fin or '-' }}</td>
+                                    <td style="padding: 0.6rem; text-align: center;">{{ record_laboral.vacaciones_periodo_2_gozadas or 0 }}</td>
+                                    <td style="padding: 0.6rem; text-align: center; font-weight: 800; color: #6ee7b7;">{{ record_laboral.vacaciones_periodo_2_pendientes or 0 }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN B & C -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <h4 style="font-size: 0.85rem; font-weight: 800; color: #93c5fd; margin: 0 0 0.4rem 0;">B. REGISTRO DE ASISTENCIA (ÚLTIMO MES)</h4>
+                        <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; font-size: 0.78rem; color: #cbd5e1;">
+                            <div><strong>Rango:</strong> {{ record_laboral.asistencia_rango_periodo or '-' }}</div>
+                            <div style="margin-top: 0.3rem;">Inasistencias: <strong>{{ record_laboral.inasistencias_dias_minutos or '-' }}</strong> {% if record_laboral.inasistencias_fechas %}({{ record_laboral.inasistencias_fechas }}){% endif %}</div>
+                            <div style="margin-top: 0.2rem;">Tardanzas: <strong>{{ record_laboral.tardanzas_dias_minutos or '-' }}</strong></div>
+                            <div style="margin-top: 0.2rem;">Permisos Particulares: <strong>{{ record_laboral.particulares_dias_minutos or '-' }}</strong></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.85rem; font-weight: 800; color: #93c5fd; margin: 0 0 0.4rem 0;">C. HORAS POR COMPENSAR</h4>
+                        <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; font-size: 0.78rem; color: #cbd5e1;">
+                            <div>Total Horas: <strong>{{ record_laboral.horas_compensar_total or '-' }}</strong></div>
+                            <div style="margin-top: 0.3rem;">Detalle: {{ record_laboral.horas_compensar_detalle or '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN D: OBSERVACIONES & FIRMA -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; background: rgba(0,0,0,0.15); padding: 0.9rem; border-radius: 8px;">
+                    <div style="flex: 2; min-width: 250px;">
+                        <h4 style="font-size: 0.85rem; font-weight: 800; color: #93c5fd; margin: 0 0 0.3rem 0;">D. OBSERVACIONES</h4>
+                        <p style="margin: 0; font-size: 0.8rem; color: #cbd5e1;">{{ record_laboral.observaciones or 'NINGUNA' }}</p>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; text-align: right;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Responsable de Control / RRHH</div>
+                        <div style="font-weight: 700; color: #fff; font-size: 0.85rem; margin-top: 0.2rem;">{{ record_laboral.responsable_rrhh or 'Jefe de Recursos Humanos / Control de Personal' }}</div>
+                        <div style="font-size: 0.72rem; color: #64748b; font-family: monospace;">EP MUJERES IQUITOS</div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem 1.5rem; background: rgba(15, 23, 42, 0.4); border-radius: 14px; border: 1px dashed rgba(255, 255, 255, 0.15);">
+                <i class="fa-solid fa-file-invoice-dollar" style="font-size: 3rem; color: #ef4444; opacity: 0.4; margin-bottom: 0.75rem;"></i>
+                <h4 style="font-size: 1.1rem; color: #fff; margin: 0 0 0.3rem 0;">No existe Récord Laboral emitido aún</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 1.25rem auto;">
+                    Si el servidor ha culminado su vínculo bajo el régimen CAS D.L. Nº 1057 (término/extinción de contrato o renuncia por concurso ganado a Ley 29709), registre el formulario oficial para liquidar sus vacaciones no gozadas o truncas.
+                </p>
+                <a href="/empleados/record-laboral/{{ emp.id_empleado }}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-plus"></i> Formular Récord de Liquidación D.L. 1057
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 1: REGISTRAR HITO DE CARRERA Y CONCURSO (CENTRADÍSIMO Y ADAPTATIVO) -->
+<!-- ========================================================================= -->
+<div id="modalHitoCarrera" class="modal-adaptive-overlay">
+    <div class="modal-adaptive-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #3b82f6; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px;">CARRERA</span>
+                <h3 style="margin: 0; font-size: 1.15rem; color: #fff; font-weight: 700;">Registrar Hito de Carrera / Concurso</h3>
+            </div>
+            <button onclick="cerrarModalHitoCarrera()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="/empleados/legajo/{{ emp.id_empleado }}/historial" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            
+            <div class="form-grid-2col">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Tipo de Evento *</label>
+                    <select name="tipo_evento" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                        <option value="CONCURSO_MERITOS">CONCURSO DE MÉRITOS (Cambio a Ley 29709)</option>
+                        <option value="INGRESO_INPE">INGRESO INICIAL AL INPE</option>
+                        <option value="CAMBIO_REGIMEN">CAMBIO DE RÉGIMEN LABORAL</option>
+                        <option value="ASCENSO_NIVEL">ASCENSO DE NIVEL</option>
+                        <option value="NOMBRAMIENTO">NOMBRAMIENTO OFICIAL</option>
+                        <option value="ASIGNACION_FUNCION">ASIGNACIÓN DE JEFATURA O FUNCIÓN</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Fecha del Evento *</label>
+                    <input type="date" name="fecha_evento" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div class="form-grid-2col">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Régimen Laboral Resultante</label>
+                    <select name="regimen_laboral" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                        <option value="Ley N° 29709">Ley N° 29709 (Carrera Penitenciaria)</option>
+                        <option value="DL N° 276">DL N° 276 (Carrera Administrativa)</option>
+                        <option value="DL N° 1057">DL N° 1057 (CAS)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Nivel o Grado</label>
+                    <input type="text" name="nivel_cargo" placeholder="Ej: T1, T2, S1, STF" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Cargo / Puesto / Función</label>
+                <input type="text" name="cargo_funcion" placeholder="Ej: TÉCNICO EN SEGURIDAD / ALCAIDE / AGENTE" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Resolución / Documento Sustentatorio *</label>
+                <input type="text" name="resolucion_documento" required placeholder="Ej: RD N° 389-2023-INPE/P / Acta de Ganadores Concurso N° 01-2023" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Detalles / Antecedentes</label>
+                <textarea name="detalles" rows="3" placeholder="Ej: Ganador de Concurso Público de Méritos para pase de CAS a Ley N° 29709..." style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem; resize: vertical;"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                <button type="button" onclick="cerrarModalHitoCarrera()" style="background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid var(--border-color); padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="submit" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Hito en Legajo
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 2: REGISTRAR SANCIÓN DISCIPLINARIA (CENTRADÍSIMO Y ADAPTATIVO) -->
+<!-- ========================================================================= -->
+<div id="modalSancion" class="modal-adaptive-overlay">
+    <div class="modal-adaptive-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #ef4444; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px;">DISCIPLINA</span>
+                <h3 style="margin: 0; font-size: 1.15rem; color: #fff; font-weight: 700;">Registrar Sanción Disciplinaria al Legajo</h3>
+            </div>
+            <button onclick="cerrarModalSancion()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="/empleados/legajo/{{ emp.id_empleado }}/sancion" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            
+            <div class="form-grid-2col">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Tipo de Sanción *</label>
+                    <select name="tipo_sancion" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                        <option value="SUSPENSION">SUSPENSIÓN SIN GOCE DE HABER</option>
+                        <option value="AMONESTACION ESCRITA">AMONESTACIÓN ESCRITA</option>
+                        <option value="CESE TEMPORAL">CESE TEMPORAL</option>
+                        <option value="DESTITUCION">DESTITUCIÓN</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Resolución / Documento Sancionador *</label>
+                    <input type="text" name="documento_resolucion" required placeholder="Ej: R. N° 275-2026-INPE/TD" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div class="form-grid-2col">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Fecha Inicio Sanción</label>
+                    <input type="date" name="fecha_inicio" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Fecha Término Sanción</label>
+                    <input type="date" name="fecha_fin" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div class="form-grid-2col">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Días de Sanción</label>
+                    <input type="number" name="dias_sancion" value="0" min="0" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Tiempo que Resuelve</label>
+                    <select name="tiempo_que_resuelve" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                        <option value="EN DIAS">EN DÍAS</option>
+                        <option value="EN MESES">EN MESES</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem;">Motivo / Descripción de la Falta</label>
+                <textarea name="observaciones" rows="3" placeholder="Ej: Infracción disciplinaria por inasistencia o abandono de servicio según informe..." style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem; resize: vertical;"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                <button type="button" onclick="cerrarModalSancion()" style="background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid var(--border-color); padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="submit" style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                    <i class="fa-solid fa-gavel"></i> Registrar Sanción
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function cambiarTabLegajo(tabId, btn) {
+        document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        document.querySelectorAll('.seccion-tab').forEach(sec => sec.style.display = 'none');
+        const target = document.getElementById('tab-' + tabId);
+        if (target) target.style.display = 'block';
+    }
+
+    function abrirModalHitoCarrera() {
+        document.getElementById('modalHitoCarrera').style.display = 'flex';
+    }
+    function cerrarModalHitoCarrera() {
+        document.getElementById('modalHitoCarrera').style.display = 'none';
+    }
+
+    function abrirModalSancion() {
+        document.getElementById('modalSancion').style.display = 'flex';
+    }
+    function cerrarModalSancion() {
+        document.getElementById('modalSancion').style.display = 'none';
+    }
+
+    // Cerrar al hacer clic fuera
+    window.addEventListener('click', function(e) {
+        const m1 = document.getElementById('modalHitoCarrera');
+        const m2 = document.getElementById('modalSancion');
+        if (e.target === m1) m1.style.display = 'none';
+        if (e.target === m2) m2.style.display = 'none';
+    });
+</script>
+{% endblock %}

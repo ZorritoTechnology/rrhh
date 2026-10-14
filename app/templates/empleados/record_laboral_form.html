@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Récord Laboral para Pago de Liquidación - D.L. 1057 CAS - RRHH NexGen{% endblock %}
+{% block header_title %}Récord Laboral de Liquidación / Cese (D.L. Nº 1057 CAS){% endblock %}
+
+{% block content %}
+<style>
+    .form-container-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 2rem;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+        max-width: 950px;
+        margin: 0 auto;
+    }
+    .seccion-header-tag {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #93c5fd;
+        background: rgba(59, 130, 246, 0.15);
+        padding: 0.25rem 0.6rem;
+        border-radius: 4px;
+        display: inline-block;
+        margin-bottom: 0.4rem;
+    }
+    .grid-2col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    .grid-3col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+    }
+    @media (max-width: 768px) {
+        .grid-2col, .grid-3col {
+            grid-template-columns: 1fr;
+        }
+        .form-container-card {
+            padding: 1.25rem;
+        }
+    }
+</style>
+
+<div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 1000px; margin: 0 auto;">
+
+    <!-- BARRA SUPERIOR DE ACCIONES -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <a href="/empleados/legajo/{{ emp.id_empleado }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 700; background: rgba(255,255,255,0.05); padding: 0.5rem 0.9rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Legajo de {{ emp.apellidos_nombres }}
+        </a>
+
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="/empleados/record-laboral/{{ emp.id_empleado }}/imprimir" target="_blank" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 0.55rem 1.25rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                <i class="fa-solid fa-print"></i> Imprimir Récord Oficial (PDF)
+            </a>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIONES -->
+    {% if mensaje %}
+    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #fff; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.4rem; color: #34d399;"></i>
+        <div>
+            <div style="font-weight: 700;">Operación Exitosa</div>
+            <div style="font-size: 0.85rem; color: #cbd5e1;">{{ mensaje }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fff; padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.4rem; color: #f87171;"></i>
+        <div>
+            <div style="font-weight: 700;">Atención</div>
+            <div style="font-size: 0.85rem; color: #cbd5e1;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- FORMULARIO EDITABLE DEL RÉCORD LABORAL -->
+    <div class="form-container-card">
+        
+        <div style="text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 800; letter-spacing: 1px;">INSTITUTO NACIONAL PENITENCIARIO - RECURSOS HUMANOS</div>
+            <h2 style="font-size: 1.4rem; font-weight: 800; color: #fff; margin: 0.4rem 0;">RECORD LABORAL PARA PAGO DE LIQUIDACIÓN</h2>
+            <div style="font-size: 0.9rem; color: #34d399; font-weight: 700;">RÉGIMEN D.L. Nº 1057 CAS / EXTINCIÓN DE CONTRATO</div>
+        </div>
+
+        <form action="/empleados/record-laboral/{{ emp.id_empleado }}" method="POST" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- DATOS GENERALES DEL SERVIDOR -->
+            <div>
+                <span class="seccion-header-tag">I. Identificación del Servidor y Cese Laboral</span>
+                <div class="grid-2col" style="margin-top: 0.5rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Apellidos y Nombres</label>
+                        <input type="text" value="{{ emp.apellidos_nombres }}" readonly style="width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem; font-weight: 700;">
+                    </div>
+                    <div class="grid-2col">
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Código (CIP)</label>
+                            <input type="text" value="{{ emp.codigo_servidor }}" readonly style="width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem; color: #93c5fd; font-family: monospace; font-weight: 700;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">DNI</label>
+                            <input type="text" value="{{ emp.dni or '-' }}" readonly style="width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem; color: #cbd5e1; font-family: monospace;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-3col" style="margin-top: 0.85rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Cargo / Función *</label>
+                        <input type="text" name="cargo_funcion" value="{{ rec.cargo_funcion }}" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Dependencia / Región</label>
+                        <input type="text" name="dependencia_region" value="{{ rec.dependencia_region }}" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">N° Celular de Contacto</label>
+                        <input type="text" name="numero_celular" value="{{ rec.numero_celular or '' }}" placeholder="Opcional" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div class="grid-3col" style="margin-top: 0.85rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Fecha Ingreso a la Entidad *</label>
+                        <input type="date" name="fecha_ingreso_entidad" value="{{ rec.fecha_ingreso_entidad }}" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Último Día Laborado *</label>
+                        <input type="date" name="ultimo_dia_laborado" value="{{ rec.ultimo_dia_laborado }}" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Fecha de Cese Laboral *</label>
+                        <input type="date" name="fecha_cese_laboral" value="{{ rec.fecha_cese_laboral }}" required style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div class="grid-2col" style="margin-top: 0.85rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Motivo de Cese *</label>
+                        <input type="text" name="motivo_cese" value="{{ rec.motivo_cese }}" required placeholder="Ej: EXTINCIÓN DE CONTRATO Carta N° D001999-2025-INPE-URH" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Documento de Sustento</label>
+                        <input type="text" name="documento_sustento" value="{{ rec.documento_sustento or '' }}" placeholder="Ej: Carta N° D001999-2025-INPE-URH" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN A: VACACIONES GENERADAS Y TRUNCAS -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.25rem;">
+                <span class="seccion-header-tag" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">A. Vacaciones Generadas por Año de Servicios</span>
+                
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.75rem;">
+                    <thead>
+                        <tr style="background: rgba(30, 41, 59, 0.8); color: #94a3b8; text-align: left;">
+                            <th style="padding: 0.5rem; width: 35px;">N°</th>
+                            <th style="padding: 0.5rem; width: 80px;">Periodo</th>
+                            <th style="padding: 0.5rem;">Fecha Inicio Periodo</th>
+                            <th style="padding: 0.5rem;">Fecha Fin Periodo</th>
+                            <th style="padding: 0.5rem; width: 110px; text-align: center;">Gozadas (días)</th>
+                            <th style="padding: 0.5rem; width: 120px; text-align: center;">Pendientes (días)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Fila 1 -->
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.5rem; color: var(--text-muted);">1</td>
+                            <td style="padding: 0.5rem;">
+                                <input type="text" name="vacaciones_periodo_1_anio" value="{{ rec.vacaciones_periodo_1_anio }}" style="width: 70px; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff; text-align: center;">
+                            </td>
+                            <td style="padding: 0.5rem;">
+                                <input type="text" name="vacaciones_periodo_1_ini" value="{{ rec.vacaciones_periodo_1_ini }}" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff;">
+                            </td>
+                            <td style="padding: 0.5rem;">
+                                <input type="text" name="vacaciones_periodo_1_fin" value="{{ rec.vacaciones_periodo_1_fin }}" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff;">
+                            </td>
+                            <td style="padding: 0.5rem; text-align: center;">
+                                <input type="number" step="0.01" name="vacaciones_periodo_1_gozadas" value="{{ rec.vacaciones_periodo_1_gozadas }}" style="width: 80px; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff; text-align: center;">
+                            </td>
+                            <td style="padding: 0.5rem; text-align: center;">
+                                <input type="number" step="0.01" name="vacaciones_periodo_1_pendientes" value="{{ rec.vacaciones_periodo_1_pendientes }}" style="width: 80px; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff; text-align: center;">
+                            </td>
+                        </tr>
+
+                        <!-- Fila 2 (Periodo de Cese con Truncas) -->
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.5rem; color: var(--text-muted);">2</td>
+                            <td style="padding: 0.5rem;">
+                                <input type="text" name="vacaciones_periodo_2_anio" value="{{ rec.vacaciones_periodo_2_anio }}" style="width: 70px; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff; text-align: center;">
+                            </td>
+                            <td style="padding: 0.5rem;">
+                                <input type="text" name="vacaciones_periodo_2_ini" value="{{ rec.vacaciones_periodo_2_ini }}" placeholder="DD/MM/AAAA" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff;">
+                            </td>
+                            <td style="padding: 0.5rem;">
+                                <input type="text" name="vacaciones_periodo_2_fin" value="{{ rec.vacaciones_periodo_2_fin }}" placeholder="DD/MM/AAAA" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff;">
+                            </td>
+                            <td style="padding: 0.5rem; text-align: center;">
+                                <input type="number" step="0.01" name="vacaciones_periodo_2_gozadas" value="{{ rec.vacaciones_periodo_2_gozadas }}" style="width: 80px; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.35rem; color: #fff; text-align: center;">
+                            </td>
+                            <td style="padding: 0.5rem; text-align: center;">
+                                <input type="number" step="0.01" name="vacaciones_periodo_2_pendientes" value="{{ rec.vacaciones_periodo_2_pendientes }}" style="width: 80px; background: #1e293b; border: 1px solid #10b981; border-radius: 4px; padding: 0.35rem; color: #34d399; font-weight: 800; text-align: center;">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08);">
+                    <div style="font-size: 0.88rem; font-weight: 800; color: #fff;">VACACIONES NO GOZADAS Y/O TRUNCAS:</div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="number" name="vacaciones_no_gozadas_truncas" value="{{ rec.vacaciones_no_gozadas_truncas }}" min="0" style="width: 90px; background: #0f172a; border: 2px solid #10b981; border-radius: 8px; padding: 0.5rem; color: #34d399; font-size: 1.15rem; font-weight: 900; text-align: center;">
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">Días computables</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN B: REGISTRO DE ASISTENCIA -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.25rem;">
+                <span class="seccion-header-tag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">B. Registro de Asistencia (Último Periodo no Reportado)</span>
+                
+                <div style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #cbd5e1;">Rango del Periodo Evaluado</label>
+                    <input type="text" name="asistencia_rango_periodo" value="{{ rec.asistencia_rango_periodo or '01/12/2025 al 31/12/2025' }}" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem; color: #fff; font-size: 0.85rem; margin-top: 0.2rem;">
+                </div>
+
+                <div class="grid-3col">
+                    <div style="background: rgba(30, 41, 59, 0.5); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-weight: 700; color: #f87171; font-size: 0.78rem;">Inasistencias</div>
+                        <input type="text" name="inasistencias_dias_minutos" value="{{ rec.inasistencias_dias_minutos }}" placeholder="Días / Minutos (-)" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; color: #fff; font-size: 0.8rem; margin-top: 0.3rem;">
+                        <input type="text" name="inasistencias_fechas" value="{{ rec.inasistencias_fechas or '' }}" placeholder="Fechas específicas" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; color: #fff; font-size: 0.8rem; margin-top: 0.3rem;">
+                    </div>
+                    <div style="background: rgba(30, 41, 59, 0.5); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-weight: 700; color: #fbbf24; font-size: 0.78rem;">Tardanzas</div>
+                        <input type="text" name="tardanzas_dias_minutos" value="{{ rec.tardanzas_dias_minutos }}" placeholder="Días / Minutos (-)" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; color: #fff; font-size: 0.8rem; margin-top: 0.3rem;">
+                        <input type="text" name="tardanzas_fechas" value="{{ rec.tardanzas_fechas or '' }}" placeholder="Fechas específicas" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; color: #fff; font-size: 0.8rem; margin-top: 0.3rem;">
+                    </div>
+                    <div style="background: rgba(30, 41, 59, 0.5); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-weight: 700; color: #cbd5e1; font-size: 0.78rem;">Particulares</div>
+                        <input type="text" name="particulares_dias_minutos" value="{{ rec.particulares_dias_minutos }}" placeholder="Días / Minutos (-)" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; color: #fff; font-size: 0.8rem; margin-top: 0.3rem;">
+                        <input type="text" name="particulares_fechas" value="{{ rec.particulares_fechas or '' }}" placeholder="Fechas específicas" style="width: 100%; background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; color: #fff; font-size: 0.8rem; margin-top: 0.3rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN C & D: HORAS Y OBSERVACIONES -->
+            <div class="grid-2col">
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.25rem;">
+                    <span class="seccion-header-tag" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc;">C. Horas por Compensar (Estado de Emergencia)</span>
+                    <div style="margin-top: 0.5rem;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: #cbd5e1;">Total Horas</label>
+                        <input type="text" name="horas_compensar_total" value="{{ rec.horas_compensar_total or '0' }}" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem; color: #fff; font-size: 0.85rem; margin-top: 0.2rem;">
+                    </div>
+                    <div style="margin-top: 0.5rem;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: #cbd5e1;">Detalle</label>
+                        <input type="text" name="horas_compensar_detalle" value="{{ rec.horas_compensar_detalle or '' }}" placeholder="Ninguno" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem; color: #fff; font-size: 0.85rem; margin-top: 0.2rem;">
+                    </div>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.25rem;">
+                    <span class="seccion-header-tag" style="background: rgba(255, 255, 255, 0.1); color: #fff;">D. Observaciones Institucionales</span>
+                    <div style="margin-top: 0.5rem;">
+                        <textarea name="observaciones" rows="4" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.6rem; color: #fff; font-size: 0.85rem; resize: vertical;">{{ rec.observaciones or 'NINGUNA' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FIRMA -->
+            <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Responsable de Control de Personal / RRHH</label>
+                <input type="text" name="responsable_rrhh" value="{{ rec.responsable_rrhh }}" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 0.85rem;">
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <a href="/empleados/legajo/{{ emp.id_empleado }}" style="background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid var(--border-color); padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">
+                    Cancelar
+                </a>
+                <button type="submit" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; padding: 0.7rem 2rem; border-radius: 8px; font-weight: 800; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Récord Laboral
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+{% endblock %}

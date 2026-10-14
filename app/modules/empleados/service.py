@@ -25,3 +25,25 @@ class EmpleadoService:
     @staticmethod
     def contar_empleados() -> int:
         return EmpleadoRepository.count_total()
+
+    @staticmethod
+    def obtener_expediente(id_empleado: int) -> Optional[Dict[str, Any]]:
+        return EmpleadoRepository.get_expediente_completo(id_empleado)
+
+    @staticmethod
+    def registrar_hito_carrera(id_empleado: int, datos: Dict[str, Any]) -> int:
+        return EmpleadoRepository.registrar_evento_historial(id_empleado, datos)
+
+    @staticmethod
+    def registrar_sancion(id_empleado: int, datos: Dict[str, Any]) -> int:
+        return EmpleadoRepository.registrar_sancion(id_empleado, datos)
+
+    @staticmethod
+    def obtener_record_laboral(id_empleado: int) -> Optional[Dict[str, Any]]:
+        return EmpleadoRepository.get_record_laboral(id_empleado)
+
+    @staticmethod
+    def guardar_record_laboral(id_empleado: int, datos: Dict[str, Any]) -> int:
+        return EmpleadoRepository.guardar_record_laboral(id_empleado, datos)
+
+

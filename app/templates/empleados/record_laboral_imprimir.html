@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Récord Laboral Liquidación - {{ emp.apellidos_nombres }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm 18mm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+            line-height: 1.35;
+        }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+        .text-right { text-align: right; }
+
+        .logo-box {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .logo-box img {
+            width: 55px;
+            height: auto;
+        }
+
+        .doc-title {
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 4px;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+        .doc-subtitle {
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .info-table {
+            width: 100%;
+            margin-bottom: 14px;
+            border-collapse: collapse;
+        }
+        .info-table td {
+            padding: 2.5px 0;
+            vertical-align: top;
+            font-size: 10.5px;
+        }
+        .info-table .lbl {
+            font-weight: bold;
+            width: 250px;
+        }
+        .info-table .sep {
+            width: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .section-label {
+            font-weight: bold;
+            font-size: 10.5px;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            font-size: 10px;
+        }
+        .data-table th {
+            text-align: center;
+            font-weight: bold;
+            background: #fff;
+        }
+
+        .obs-box {
+            width: 100%;
+            border: 1px solid #000;
+            min-height: 45px;
+            padding: 6px;
+            box-sizing: border-box;
+            font-size: 10px;
+            margin-bottom: 12px;
+        }
+
+        .notes-list {
+            font-size: 8.5px;
+            margin-top: 10px;
+            color: #111;
+            line-height: 1.3;
+        }
+
+        .signature-box {
+            margin-top: 55px;
+            text-align: center;
+            width: 280px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-bottom: 4px;
+        }
+
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BOTÓN DE IMPRESIÓN DIRECTA -->
+    <div class="no-print" style="position: fixed; top: 15px; right: 15px; background: #1e293b; padding: 10px 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 9999;">
+        <button onclick="window.print()" style="background: #10b981; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">
+            🖨️ Imprimir Hoja Oficial (A4)
+        </button>
+    </div>
+
+    <!-- LOGO INPE -->
+    <div class="logo-box">
+        <img src="/static/img/inpe_logo.png" alt="INPE" onerror="this.style.display='none'">
+        <div style="font-size: 9px; font-weight: bold; letter-spacing: 0.5px;">INPE</div>
+    </div>
+
+    <!-- TÍTULOS OFICIALES -->
+    <div class="doc-title">RECORD LABORAL</div>
+    <div class="doc-subtitle">PARA PAGO DE LIQUIDACIÓN - D.L. Nº 1057 CAS</div>
+
+    <!-- DATOS FILIATORIOS Y CESE -->
+    <table class="info-table">
+        <tr>
+            <td class="lbl">APELLIDOS Y NOMBRES</td>
+            <td class="sep">:</td>
+            <td class="text-bold">{{ emp.apellidos_nombres }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">CÓDIGO</td>
+            <td class="sep">:</td>
+            <td>{{ emp.codigo_servidor }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">CARGO/FUNCION</td>
+            <td class="sep">:</td>
+            <td>{{ rec.cargo_funcion }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">FECHA DE INGRESO A LA ENTIDAD</td>
+            <td class="sep">:</td>
+            <td>{{ rec.fecha_ingreso_entidad }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">ÚLTIMO DÍA LABORADO*</td>
+            <td class="sep">:</td>
+            <td>{{ rec.ultimo_dia_laborado }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">FECHA DE CESE LABORAL</td>
+            <td class="sep">:</td>
+            <td>{{ rec.fecha_cese_laboral }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">MOTIVO DE CESE</td>
+            <td class="sep">:</td>
+            <td>{{ rec.motivo_cese }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">DEPENDENCIA / REGIÓN</td>
+            <td class="sep">:</td>
+            <td>{{ rec.dependencia_region }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">N° CELULAR</td>
+            <td class="sep">:</td>
+            <td>{{ rec.numero_celular or '' }}</td>
+        </tr>
+    </table>
+
+    <!-- SECCIÓN A: VACACIONES -->
+    <div class="section-label">A. VACACIONES</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th rowspan="2" style="width: 30px;">Nº</th>
+                <th rowspan="2" style="width: 70px;">Periodo</th>
+                <th colspan="2">Vacaciones Generadas por Año de Servicios</th>
+                <th rowspan="2" style="width: 100px;">Gozadas (en días)</th>
+                <th rowspan="2" style="width: 100px;">Pendientes (en días)</th>
+            </tr>
+            <tr>
+                <th style="width: 125px;">Fecha Inicio Periodo</th>
+                <th style="width: 125px;">Fecha Fin Periodo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-center">1</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_1_anio }}</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_1_ini }}</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_1_fin }}</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_1_gozadas|int }}</td>
+                <td class="text-center">{% if rec.vacaciones_periodo_1_pendientes %}{{ rec.vacaciones_periodo_1_pendientes }}{% else %}0{% endif %}</td>
+            </tr>
+            <tr>
+                <td class="text-center">2</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_2_anio }}</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_2_ini }}</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_2_fin }}</td>
+                <td class="text-center">{{ rec.vacaciones_periodo_2_gozadas|int }}</td>
+                <td class="text-center text-bold">{{ rec.vacaciones_periodo_2_pendientes }}</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="text-bold text-center" style="letter-spacing: 0.5px;">VACACIONES NO GOZADAS Y/O TRUNCAS</td>
+                <td colspan="2" class="text-center text-bold" style="font-size: 11px;">{{ rec.vacaciones_no_gozadas_truncas }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- SECCIÓN B: ASISTENCIA -->
+    <div class="section-label">B. REGISTRO DE ASISTENCIA <span style="font-weight: normal; font-size: 9px;">(Considerar sólo el último periodo no reportado, anterior a la fecha de Cese Laboral)</span></div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 140px;">Rango Periodo</th>
+                <th style="width: 160px;">Descuentos por</th>
+                <th style="width: 110px;">Días / Minutos</th>
+                <th>Fechas</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td rowspan="3" class="text-center" style="vertical-align: middle;">
+                    {{ rec.asistencia_rango_periodo }}
+                </td>
+                <td>Inasistencias</td>
+                <td class="text-center">{{ rec.inasistencias_dias_minutos }}</td>
+                <td>{{ rec.inasistencias_fechas }}</td>
+            </tr>
+            <tr>
+                <td>Tardanzas</td>
+                <td class="text-center">{{ rec.tardanzas_dias_minutos }}</td>
+                <td>{{ rec.tardanzas_fechas }}</td>
+            </tr>
+            <tr>
+                <td>Particulares</td>
+                <td class="text-center">{{ rec.particulares_dias_minutos }}</td>
+                <td>{{ rec.particulares_fechas }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- SECCIÓN C: HORAS POR COMPENSAR -->
+    <div class="section-label">C. HORAS POR COMPENSAR <span style="font-weight: normal; font-size: 9px;">(En el Marco de Estado de Emergencia Nacional, vigente)</span></div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 250px;">Total Horas</th>
+                <th>Detalle</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-center">{{ rec.horas_compensar_total or '0' }}</td>
+                <td>{{ rec.horas_compensar_detalle or '' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- SECCIÓN D: OBSERVACIONES -->
+    <div class="section-label">D. OBSERVACIONES</div>
+    <div class="obs-box">
+        {{ rec.observaciones or 'NINGUNA' }}
+    </div>
+
+    <!-- NOTAS IMPORTANTES LEGALES -->
+    <div class="notes-list">
+        <strong>*Importante:</strong><br>
+        - Registrar las vacaciones gozadas, desde su fecha de ingreso a laborar en la entidad.<br>
+        - Las vacaciones pendientes aparecen automáticamente, una vez llenados los días gozados.<br>
+        - En el caso de servidores con horario atípico (seguridad o salud), el último día laborado incluye los días de franco del último servicio realizado con efectividad.<br>
+        - Todos los campos son obligatorios.
+    </div>
+
+    <!-- FIRMA -->
+    <div class="signature-box">
+        <div class="signature-line"></div>
+        <div style="font-weight: bold; font-size: 9.5px;">Firma</div>
+        <div style="font-size: 9px;">{{ rec.responsable_rrhh or 'Jefe de Recursos Humanos y/o Responsable de Control de Personal' }}</div>
+    </div>
+
+</body>
+</html>
