@@ -86,12 +86,43 @@ class DesplazamientoService:
                 WHERE id_empleado = ?
             """, (id_empleado,))
 
+            # Sincronizar automáticamente con el libro mensual de asistencia (Hoja 6: Desplazamientos)
+            try:
+                from app.modules.asistencia.service import AsistenciaService
+                # Determinar año y mes según la fecha de desplazamiento
+                partes_f = fecha_desplazamiento.split("-") if fecha_desplazamiento else []
+                anio_desp = int(partes_f[0]) if len(partes_f) >= 1 and partes_f[0].isdigit() else 2026
+                mes_desp = int(partes_f[1]) if len(partes_f) >= 2 and partes_f[1].isdigit() else 1
+                rep_id = AsistenciaService.asegurar_reporte_mes(anio_desp, mes_desp)
+                
+                # Obtener datos de cargo y área del empleado
+                cur.execute("SELECT cargo_funcion, area_clasificacion FROM empleados WHERE id_empleado = ?", (id_empleado,))
+                emp_row = cur.fetchone()
+                c_fun = emp_row["cargo_funcion"] if emp_row and emp_row["cargo_funcion"] else "AGENTE DE SEGURIDAD"
+                c_area = emp_row["area_clasificacion"] if emp_row and emp_row["area_clasificacion"] else "SEG"
+
+                cur.execute("""
+                    SELECT id_desplazamiento FROM reporte_desplazamientos
+                    WHERE id_reporte = ? AND id_empleado = ? AND fecha_desplazamiento = ?
+                """, (rep_id, id_empleado, fecha_desplazamiento))
+                existente = cur.fetchone()
+                
+                obs_hoja = f"ALTA: Procedente de {nombre_origen_ext or 'Otro Penal'}. Doc: {documento_oficial}. {observaciones}".strip()
+                if not existente:
+                    cur.execute("""
+                        INSERT INTO reporte_desplazamientos (
+                            id_reporte, id_empleado, area, cargo_funcion, fecha_desplazamiento, documento_resolucion, observaciones
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (rep_id, id_empleado, c_area, c_fun, fecha_desplazamiento, documento_oficial, obs_hoja))
+            except Exception as e_sync:
+                print(f"[WARN] Error al sincronizar alta con reporte_desplazamientos: {e_sync}")
+
             conn.commit()
 
         return {
             "success": True,
             "id_desplazamiento": id_desp,
-            "message": f"Servidor penitenciario incorporado exitosamente con récord de origen ({vacaciones_gozadas_origen} días vac. y {comp_gozadas_origen} días 24x48 gozados)."
+            "message": f"Servidor penitenciario incorporado exitosamente con récord de origen ({vacaciones_gozadas_origen} días vac. y {comp_gozadas_origen} días 24x48 gozados) y registrado en el Reporte Mensual de Asistencia."
         }
 
     @staticmethod
@@ -148,12 +179,41 @@ class DesplazamientoService:
                 WHERE id_empleado = ?
             """, (id_empleado,))
 
+            # Sincronizar automáticamente con el libro mensual de asistencia (Hoja 6: Desplazamientos)
+            try:
+                from app.modules.asistencia.service import AsistenciaService
+                partes_f = fecha_desplazamiento.split("-") if fecha_desplazamiento else []
+                anio_desp = int(partes_f[0]) if len(partes_f) >= 1 and partes_f[0].isdigit() else 2026
+                mes_desp = int(partes_f[1]) if len(partes_f) >= 2 and partes_f[1].isdigit() else 1
+                rep_id = AsistenciaService.asegurar_reporte_mes(anio_desp, mes_desp)
+
+                cur.execute("SELECT cargo_funcion, area_clasificacion FROM empleados WHERE id_empleado = ?", (id_empleado,))
+                emp_row = cur.fetchone()
+                c_fun = emp_row["cargo_funcion"] if emp_row and emp_row["cargo_funcion"] else "AGENTE DE SEGURIDAD"
+                c_area = emp_row["area_clasificacion"] if emp_row and emp_row["area_clasificacion"] else "SEG"
+
+                cur.execute("""
+                    SELECT id_desplazamiento FROM reporte_desplazamientos
+                    WHERE id_reporte = ? AND id_empleado = ? AND fecha_desplazamiento = ?
+                """, (rep_id, id_empleado, fecha_desplazamiento))
+                existente = cur.fetchone()
+
+                obs_hoja = f"BAJA: Desplazado a {nombre_destino_ext}. Doc: {documento_oficial}. {observaciones}".strip()
+                if not existente:
+                    cur.execute("""
+                        INSERT INTO reporte_desplazamientos (
+                            id_reporte, id_empleado, area, cargo_funcion, fecha_desplazamiento, documento_resolucion, observaciones
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (rep_id, id_empleado, c_area, c_fun, fecha_desplazamiento, documento_oficial, obs_hoja))
+            except Exception as e_sync:
+                print(f"[WARN] Error al sincronizar baja con reporte_desplazamientos: {e_sync}")
+
             conn.commit()
 
         return {
             "success": True,
             "id_desplazamiento": id_desp,
-            "message": f"Baja por desplazamiento registrada exitosamente hacia {nombre_destino_ext}. Puede imprimir la Constancia Anexo 06."
+            "message": f"Baja por desplazamiento registrada exitosamente hacia {nombre_destino_ext} y sincronizada con el Reporte Mensual de Asistencia. Puede imprimir la Constancia Anexo 06."
         }
 
     @staticmethod

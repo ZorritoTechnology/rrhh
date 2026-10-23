@@ -208,9 +208,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 1: Reporte de Asistencia del Personal (Plantilla del Mes)</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total servidores habilitados en el período: {{ counts.personal }}</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-personal').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <i class="fa-solid fa-user-plus"></i> Asignar Servidor al Mes
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado (Solo Lectura)</span>
+                {% endif %}
             </div>
 
             <div style="overflow-x: auto; margin-top: 1rem;">
@@ -252,6 +256,7 @@
                             <td style="font-size: 0.75rem;">{{ p.horario_laboral }}</td>
                             <td style="font-size: 0.75rem; color: var(--text-muted);">{{ p.resolucion_documento }}</td>
                             <td>
+                                {% if datos_mes.info.estado != 'CERRADO' %}
                                 <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Quitar a este servidor de la plantilla de este mes?');" style="margin: 0;">
                                     <input type="hidden" name="tabla" value="asistencia_mensual_personal">
                                     <input type="hidden" name="pk_col" value="id_asistencia">
@@ -260,6 +265,9 @@
                                     <input type="hidden" name="tab" value="personal">
                                     <button type="submit" class="btn-delete" title="Quitar del mes"><i class="fa-solid fa-trash"></i></button>
                                 </form>
+                                {% else %}
+                                <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -279,9 +287,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 2: Funcionarios y Directivos del Mes</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Directivos con niveles F-1 a F-6 (D.L. 276) o S3 a S5 (Ley 29709)</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-funcionario').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <i class="fa-solid fa-plus"></i> Registrar Funcionario
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -308,6 +320,7 @@
                         <td>{{ f.fecha_inicio_funciones }}</td>
                         <td style="font-size: 0.8rem; color: var(--text-muted);">{{ f.resolucion_documento }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Eliminar funcionario?');">
                                 <input type="hidden" name="tabla" value="reporte_funcionarios">
                                 <input type="hidden" name="pk_col" value="id_funcionario">
@@ -316,6 +329,9 @@
                                 <input type="hidden" name="tab" value="funcionarios">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -336,9 +352,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 3: Sanciones Disciplinarias del Mes</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Suspensión, Amonestación escrita, Cese temporal, Destitución</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-sancion').style.display='block'" style="background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <i class="fa-solid fa-plus"></i> Registrar Sanción
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -367,6 +387,7 @@
                         <td>{{ s.tiempo_que_resuelve }}</td>
                         <td style="font-size: 0.8rem;">{{ s.resolucion_documento }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Eliminar sanción?');">
                                 <input type="hidden" name="tabla" value="reporte_sanciones">
                                 <input type="hidden" name="pk_col" value="id_sancion">
@@ -375,6 +396,9 @@
                                 <input type="hidden" name="tab" value="sanciones">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -395,9 +419,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 4: Renuncias y Ceses Voluntarios</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Recepción de cartas, último día laborado y motivos</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-renuncia').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
                     <i class="fa-solid fa-plus"></i> Registrar Renuncia
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -413,6 +441,7 @@
                         <td>{{ r.motivos }}</td>
                         <td>{{ r.ultimo_dia_laborado }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST">
                                 <input type="hidden" name="tabla" value="reporte_renuncias">
                                 <input type="hidden" name="pk_col" value="id_renuncia">
@@ -421,6 +450,9 @@
                                 <input type="hidden" name="tab" value="renuncias">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -441,9 +473,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 5: Reincorporaciones del Personal</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Retorno tras culminación de sanción, licencia o mandato judicial</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-reincorporacion').style.display='block'" style="background: var(--secondary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
                     <i class="fa-solid fa-plus"></i> Registrar Reincorporación
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -459,6 +495,7 @@
                         <td>{{ re.fecha_reincorporacion }}</td>
                         <td>{{ re.motivo_reincorporacion }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST">
                                 <input type="hidden" name="tabla" value="reporte_reincorporaciones">
                                 <input type="hidden" name="pk_col" value="id_reincorporacion">
@@ -467,6 +504,9 @@
                                 <input type="hidden" name="tab" value="reincorporaciones">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -487,9 +527,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 6: Desplazamientos y Rotaciones</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Traslados entre sedes penitenciarias o cambios de área interna</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-desplazamiento').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
                     <i class="fa-solid fa-plus"></i> Registrar Desplazamiento
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -505,6 +549,7 @@
                         <td>{{ d.fecha_desplazamiento }}</td>
                         <td>{{ d.observaciones }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST">
                                 <input type="hidden" name="tabla" value="reporte_desplazamientos">
                                 <input type="hidden" name="pk_col" value="id_desplazamiento">
@@ -513,6 +558,9 @@
                                 <input type="hidden" name="tab" value="desplazamientos">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -533,9 +581,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 7: Licencias (Médicas, Onomásticos, Maternidad, Particulares)</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total licencias otorgadas en el mes: {{ counts.licencias }}</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-licencia').style.display='block'" style="background: var(--secondary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <i class="fa-solid fa-plus"></i> Registrar Licencia
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -574,6 +626,7 @@
                         <td style="font-weight: 700; color: #fff;">{{ l.dias }} d</td>
                         <td style="font-size: 0.8rem; color: var(--text-muted);">{{ l.observaciones or '-' }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST" onsubmit="return confirm('¿Eliminar registro de licencia?');">
                                 <input type="hidden" name="tabla" value="reporte_licencias">
                                 <input type="hidden" name="pk_col" value="id_licencia">
@@ -582,6 +635,9 @@
                                 <input type="hidden" name="tab" value="licencias">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -602,9 +658,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 8: Vacaciones Gozadas y Fraccionadas</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total registros vacacionales en el mes: {{ counts.vacaciones }}</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-vacacion').style.display='block'" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <i class="fa-solid fa-plus"></i> Registrar Vacaciones
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -621,6 +681,7 @@
                         <td style="font-weight: 700; color: #fff;">{{ v.dias }} d</td>
                         <td style="font-size: 0.8rem; color: var(--text-muted);">{{ v.observaciones or '-' }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST">
                                 <input type="hidden" name="tabla" value="reporte_vacaciones">
                                 <input type="hidden" name="pk_col" value="id_vacacion">
@@ -629,6 +690,9 @@
                                 <input type="hidden" name="tab" value="vacaciones">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -649,9 +713,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 9: Tardanzas del Mes (en Minutos)</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Total acumulado para descuento de planillas</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-tardanza').style.display='block'" style="background: var(--warning); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
                     <i class="fa-solid fa-plus"></i> Registrar Tardanza
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -666,6 +734,7 @@
                         <td>{{ mes_seleccionado }}</td>
                         <td>{{ t.observaciones or '-' }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST">
                                 <input type="hidden" name="tabla" value="reporte_tardanzas">
                                 <input type="hidden" name="pk_col" value="id_tardanza">
@@ -674,6 +743,9 @@
                                 <input type="hidden" name="tab" value="tardanzas">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -694,9 +766,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 10: Permisos Particulares (en Minutos)</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Cómputo en minutos acumulados durante el mes</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-permiso').style.display='block'" style="background: var(--warning); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
                     <i class="fa-solid fa-plus"></i> Registrar Permiso P/P
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -711,6 +787,7 @@
                         <td>{{ mes_seleccionado }}</td>
                         <td style="font-size: 0.8rem; color: var(--text-muted);">{{ pm.observaciones or '-' }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST">
                                 <input type="hidden" name="tabla" value="reporte_permisos">
                                 <input type="hidden" name="pk_col" value="id_permiso">
@@ -719,6 +796,9 @@
                                 <input type="hidden" name="tab" value="permisos">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -739,9 +819,13 @@
                     <h3 style="font-size: 1.15rem; font-weight: 700;">Hoja 11: Inasistencias Injustificadas</h3>
                     <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Días no laborados y fechas exactas para aplicación de sanción</p>
                 </div>
+                {% if datos_mes.info.estado != 'CERRADO' %}
                 <button onclick="document.getElementById('modal-inasistencia').style.display='block'" style="background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer;">
                     <i class="fa-solid fa-plus"></i> Registrar Inasistencia
                 </button>
+                {% else %}
+                <span class="badge badge-error" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fa-solid fa-lock"></i> Mes Cerrado</span>
+                {% endif %}
             </div>
 
             <table class="data-table" style="margin-top: 1rem;">
@@ -757,6 +841,7 @@
                         <td>{{ mes_seleccionado }}</td>
                         <td style="font-size: 0.8rem; color: var(--text-muted);">{{ ina.observaciones or '-' }}</td>
                         <td>
+                            {% if datos_mes.info.estado != 'CERRADO' %}
                             <form action="/asistencia/eliminar-registro" method="POST">
                                 <input type="hidden" name="tabla" value="reporte_inasistencias">
                                 <input type="hidden" name="pk_col" value="id_inasistencia">
@@ -765,6 +850,9 @@
                                 <input type="hidden" name="tab" value="inasistencias">
                                 <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
                             </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -1152,6 +1240,277 @@
             <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
                 <button type="button" onclick="document.getElementById('modal-inasistencia').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
                 <button type="submit" style="background: var(--danger); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL FUNCIONARIO (HOJA 2) -->
+<div id="modal-funcionario" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 650px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Funcionario / Directivo del Mes</h3>
+            <button onclick="document.getElementById('modal-funcionario').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-funcionario" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor del Mes</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Cargo / Función</label>
+                    <input type="text" name="cargo_funcion" value="DIRECTORA" placeholder="Ej: DIRECTORA, SUBDIRECTOR, JEFE DE REGIMEN" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Nivel Remunerativo</label>
+                    <input type="text" name="nivel" value="S4" placeholder="Ej: F-1, F-2, S4, S5" required class="search-input">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Fecha Inicio de Funciones</label>
+                    <input type="date" name="fecha_inicio_funciones" class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Resolución / Documento</label>
+                    <input type="text" name="resolucion_documento" placeholder="Ej: RP N° 089-2026-INPE/P" class="search-input">
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones</label>
+                <input type="text" name="observaciones" placeholder="Detalles de la designación o encargo de funciones" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-funcionario').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--primary); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Funcionario</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL DESPLAZAMIENTOS Y ROTACIONES (HOJA 6) -->
+<div id="modal-desplazamiento" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 680px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <h3 style="font-weight: 700;">Registrar Desplazamiento / Rotación del Mes</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Hoja 6 del Libro de Asistencia Mensual (Directiva DI-003-2023)</p>
+            </div>
+            <button onclick="document.getElementById('modal-desplazamiento').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between;">
+            <span>¿Requiere emitir la <strong>Constancia Oficial Anexo 06</strong> con saldo vacacional y días 24x48?</span>
+            <a href="/desplazamientos" target="_blank" style="color: var(--secondary); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;">
+                Ir a Traslados Anexo 06 <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
+        </div>
+
+        <form action="/asistencia/guardar-desplazamiento" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Área / Establecimiento Destino</label>
+                    <input type="text" name="area" placeholder="Ej: SEG / EP Iquitos Varones" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Cargo / Función</label>
+                    <input type="text" name="cargo_funcion" placeholder="Ej: AGENTE DE SEGURIDAD PENITENCIARIA" required class="search-input">
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Fecha del Desplazamiento</label>
+                <input type="date" name="fecha" required class="search-input">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Documento / Observaciones</label>
+                <input type="text" name="observaciones" placeholder="Ej: RESOLUCIÓN PRESIDENCIAL N° 0652-2026-INPE/P (EP. Mujeres a EP. Varones)" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-desplazamiento').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--primary); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Desplazamiento</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL RENUNCIAS (HOJA 4) -->
+<div id="modal-renuncia" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 650px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Renuncia o Cese Voluntario</h3>
+            <button onclick="document.getElementById('modal-renuncia').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-renuncia" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor del Mes</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">A Partir del (Fecha Efectiva)</label>
+                    <input type="date" name="a_partir_del" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Último Día Laborado</label>
+                    <input type="date" name="ultimo_dia_laborado" required class="search-input">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Fecha de Carta de Renuncia</label>
+                    <input type="date" name="carta_fecha" class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Fecha de Recepción en Trámite</label>
+                    <input type="date" name="fecha_recepcion" class="search-input">
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Motivos Consignados</label>
+                <input type="text" name="motivos" placeholder="Ej: Motivos estrictamente personales / culminación de vínculo" class="search-input">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones</label>
+                <input type="text" name="observaciones" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-renuncia').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--primary); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Renuncia</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL REINCORPORACIONES (HOJA 5) -->
+<div id="modal-reincorporacion" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 650px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Reincorporación de Servidor</h3>
+            <button onclick="document.getElementById('modal-reincorporacion').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-reincorporacion" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for emp in empleados %}
+                    <option value="{{ emp.id_empleado }}" style="color: #000;">{{ emp.codigo_servidor }} - {{ emp.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">F. Inicio Inactividad</label>
+                    <input type="date" name="fecha_inicio_inactividad" class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Motivo Inactividad</label>
+                    <input type="text" name="motivo_inactividad" placeholder="Ej: Suspensión disciplinaria / Licencia s/g" class="search-input">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">F. Reincorporación Efectiva</label>
+                    <input type="date" name="fecha_reincorporacion" required class="search-input">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: uppercase;">Motivo Retorno / Documento</label>
+                    <input type="text" name="motivo_reincorporacion" placeholder="Ej: Término de sanción / Mandato judicial" class="search-input">
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones</label>
+                <input type="text" name="observaciones" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-reincorporacion').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--secondary); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Reincorporación</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL TARDANZAS (HOJA 9) -->
+<div id="modal-tardanza" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 600px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Tardanzas del Mes (Minutos)</h3>
+            <button onclick="document.getElementById('modal-tardanza').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-tardanza" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor del Mes</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Minutos Acumulados</label>
+                <input type="number" name="minutos" min="1" max="10000" placeholder="Ej: 45" required class="search-input">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones / Fechas de Marcación</label>
+                <input type="text" name="observaciones" placeholder="Ej: Tardanzas acumuladas en 3 fechas del mes" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-tardanza').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--warning); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Tardanza</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL PERMISOS PARTICULARES (HOJA 10) -->
+<div id="modal-permiso" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 2rem;">
+    <div class="table-container" style="max-width: 600px; margin: 2rem auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 700;">Registrar Permiso Particular P/P (Minutos)</h3>
+            <button onclick="document.getElementById('modal-permiso').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+        <form action="/asistencia/guardar-permiso" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="mes" value="{{ mes_seleccionado }}">
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Servidor del Mes</label>
+                <select name="id_empleado" class="search-input" required>
+                    {% for p in libro.personal %}
+                    <option value="{{ p.id_empleado }}" style="color: #000;">{{ p.codigo_servidor }} - {{ p.apellidos_nombres }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Minutos Autorizados</label>
+                <input type="number" name="minutos" min="1" max="10000" placeholder="Ej: 120" required class="search-input">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; text-transform: uppercase;">Observaciones / Papeleta</label>
+                <input type="text" name="observaciones" placeholder="Ej: Papeleta N° 012 - Asuntos de índole personal" class="search-input">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button type="button" onclick="document.getElementById('modal-permiso').style.display='none'" style="background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--warning); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Permiso</button>
             </div>
         </form>
     </div>

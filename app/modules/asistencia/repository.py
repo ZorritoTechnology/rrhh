@@ -3,7 +3,7 @@ from app.core.database import get_connection, get_db_cursor
 
 class AsistenciaRepository:
     @staticmethod
-    def get_or_create_reporte_mensual(anio: int, mes: int, id_establecimiento: int = 722, id_responsable: int = 1, obs: str = "") -> int:
+    def get_or_create_reporte_mensual(anio: int, mes: int, id_establecimiento: int = 722, id_responsable: Optional[int] = None, obs: str = "") -> int:
         with get_connection() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -13,6 +13,16 @@ class AsistenciaRepository:
             row = cur.fetchone()
             if row:
                 return row["id_reporte"]
+
+            # Si no se pasó responsable o es inválido, buscar director/responsable activo del penal
+            if not id_responsable:
+                cur.execute("""
+                    SELECT id_empleado FROM empleados
+                    WHERE estado_laboral = 'ACTIVO' AND (cargo_funcion LIKE '%DIRECTOR%' OR cargo_estructural LIKE '%DIRECTOR%')
+                    ORDER BY id_empleado DESC LIMIT 1
+                """)
+                resp_row = cur.fetchone()
+                id_responsable = resp_row["id_empleado"] if resp_row else 89
 
         with get_db_cursor() as cur:
             cur.execute("SELECT COUNT(*) FROM empleados")
@@ -376,6 +386,13 @@ class AsistenciaRepository:
             id_rep_origen = rep_origen["id_reporte"]
             resp_id = rep_origen["id_responsable"]
 
+            # Verificar si el responsable de origen sigue activo; si no, dejar None para asignar director actual
+            if resp_id:
+                cur.execute("SELECT estado_laboral FROM empleados WHERE id_empleado = ?", (resp_id,))
+                resp_emp = cur.fetchone()
+                if not resp_emp or resp_emp["estado_laboral"] != "ACTIVO":
+                    resp_id = None
+
             # Obtener personal de origen
             cur.execute("""
                 SELECT id_empleado, id_regimen, nivel, cargo_estructural, estado_laboral,
@@ -412,6 +429,81 @@ class AsistenciaRepository:
                 ))
             # Actualizar total trabajadores
             cur.execute("UPDATE reportes_cierre_mensual SET total_trabajadores = ? WHERE id_reporte = ?", (len(filas), id_rep_dest))
+
+            # Traspasar Directivos / Funcionarios activos del mes anterior si aún no existen en el destino
+            cur.execute("""
+                SELECT f.id_empleado, f.cargo_funcion, f.nivel, f.fecha_inicio_funciones, f.resolucion_documento, f.observaciones
+                FROM reporte_funcionarios f
+                JOIN empleados e ON f.id_empleado = e.id_empleado
+                WHERE f.id_reporte = ? AND e.estado_laboral = 'ACTIVO'
+            """, (id_rep_origen,))
+            func_filas = [dict(r) for r in cur.fetchall()]
+            for func in func_filas:
+                cur.execute("""
+                    SELECT id_funcionario FROM reporte_funcionarios 
+                    WHERE id_reporte = ? AND id_empleado = ?
+                """, (id_rep_dest, func["id_empleado"]))
+                if not cur.fetchone():
+                    cur.execute("""
+                        INSERT INTO reporte_funcionarios (id_reporte, id_empleado, cargo_funcion, nivel, fecha_inicio_funciones, resolucion_documento, observaciones)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (id_rep_dest, func["id_empleado"], func["cargo_funcion"], func["nivel"], func["fecha_inicio_funciones"], func["resolucion_documento"], func["observaciones"]))
+
+            # Traspasar Sanciones que continúan vigentes en el mes destino
+            fecha_inicio_mes_dest = f"{anio}-{mes_destino:02d}-01"
+            cur.execute("""
+                SELECT s.id_empleado, s.tipo_sancion, s.fecha_inicio, s.fecha_termino, s.dias, s.tiempo_que_resuelve, s.resolucion_documento, s.observaciones
+                FROM reporte_sanciones s
+                WHERE s.id_reporte = ? AND s.fecha_termino >= ?
+            """, (id_rep_origen, fecha_inicio_mes_dest))
+            sanc_continuas = [dict(r) for r in cur.fetchall()]
+            for sc in sanc_continuas:
+                cur.execute("""
+                    SELECT id_sancion FROM reporte_sanciones 
+                    WHERE id_reporte = ? AND id_empleado = ? AND fecha_inicio = ?
+                """, (id_rep_dest, sc["id_empleado"], sc["fecha_inicio"]))
+                if not cur.fetchone():
+                    cur.execute("""
+                        INSERT INTO reporte_sanciones (id_reporte, id_empleado, tipo_sancion, fecha_inicio, fecha_termino, dias, tiempo_que_resuelve, resolucion_documento, observaciones)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (id_rep_dest, sc["id_empleado"], sc["tipo_sancion"], sc["fecha_inicio"], sc["fecha_termino"], sc["dias"], sc["tiempo_que_resuelve"], sc["resolucion_documento"], sc["observaciones"]))
+
+            # Traspasar Licencias (ej. Maternidad, Médicas, Particulares) que continúan vigentes en el mes destino
+            cur.execute("""
+                SELECT l.id_empleado, l.tipo, l.entidad, l.fecha_inicio, l.fecha_termino, l.dias, l.observaciones
+                FROM reporte_licencias l
+                WHERE l.id_reporte = ? AND l.fecha_termino >= ?
+            """, (id_rep_origen, fecha_inicio_mes_dest))
+            lic_continuas = [dict(r) for r in cur.fetchall()]
+            for lc in lic_continuas:
+                cur.execute("""
+                    SELECT id_licencia FROM reporte_licencias 
+                    WHERE id_reporte = ? AND id_empleado = ? AND fecha_inicio = ?
+                """, (id_rep_dest, lc["id_empleado"], lc["fecha_inicio"]))
+                if not cur.fetchone():
+                    cur.execute("""
+                        INSERT INTO reporte_licencias (id_reporte, id_empleado, tipo, entidad, fecha_inicio, fecha_termino, dias, observaciones)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (id_rep_dest, lc["id_empleado"], lc["tipo"], lc["entidad"], lc["fecha_inicio"], lc["fecha_termino"], lc["dias"], lc["observaciones"]))
+
+            # Traspasar Vacaciones que continúan vigentes en el mes destino
+            cur.execute("""
+                SELECT v.id_empleado, v.periodo, v.fecha_inicio, v.fecha_termino, v.dias, v.observaciones
+                FROM reporte_vacaciones v
+                WHERE v.id_reporte = ? AND v.fecha_termino >= ?
+            """, (id_rep_origen, fecha_inicio_mes_dest))
+            vac_continuas = [dict(r) for r in cur.fetchall()]
+            for vc in vac_continuas:
+                cur.execute("""
+                    SELECT id_vacacion FROM reporte_vacaciones 
+                    WHERE id_reporte = ? AND id_empleado = ? AND fecha_inicio = ?
+                """, (id_rep_dest, vc["id_empleado"], vc["fecha_inicio"]))
+                if not cur.fetchone():
+                    cur.execute("""
+                        INSERT INTO reporte_vacaciones (id_reporte, id_empleado, periodo, fecha_inicio, fecha_termino, dias, observaciones)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (id_rep_dest, vc["id_empleado"], vc["periodo"], vc["fecha_inicio"], vc["fecha_termino"], vc["dias"], vc["observaciones"]))
+
             return len(filas)
 
     @staticmethod

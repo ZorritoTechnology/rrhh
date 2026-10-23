@@ -80,13 +80,29 @@ class CompensacionService:
                 }
 
             # 4. Novedades del mes (Licencias, Vacaciones, Sanciones, Inasistencias)
-            cur.execute("SELECT id_empleado, fecha_inicio, fecha_termino FROM reporte_licencias WHERE id_reporte = ?", (id_reporte,))
+            # Se consideran tanto las registradas en el reporte mensual como las que provienen de meses previos y continúan vigentes
+            fecha_inicio_mes_str = f"{anio}-{mes:02d}-01"
+            fecha_fin_mes_str = f"{anio}-{mes:02d}-{num_dias:02d}"
+
+            cur.execute("""
+                SELECT DISTINCT id_empleado, fecha_inicio, fecha_termino 
+                FROM reporte_licencias 
+                WHERE (id_reporte = ? OR (fecha_inicio <= ? AND fecha_termino >= ?))
+            """, (id_reporte, fecha_fin_mes_str, fecha_inicio_mes_str))
             licencias = cur.fetchall()
 
-            cur.execute("SELECT id_empleado, fecha_inicio, fecha_termino FROM reporte_vacaciones WHERE id_reporte = ?", (id_reporte,))
+            cur.execute("""
+                SELECT DISTINCT id_empleado, fecha_inicio, fecha_termino 
+                FROM reporte_vacaciones 
+                WHERE (id_reporte = ? OR (fecha_inicio <= ? AND fecha_termino >= ?))
+            """, (id_reporte, fecha_fin_mes_str, fecha_inicio_mes_str))
             vacaciones = cur.fetchall()
 
-            cur.execute("SELECT id_empleado, fecha_inicio, fecha_termino FROM reporte_sanciones WHERE id_reporte = ?", (id_reporte,))
+            cur.execute("""
+                SELECT DISTINCT id_empleado, fecha_inicio, fecha_termino 
+                FROM reporte_sanciones 
+                WHERE (id_reporte = ? OR (fecha_inicio <= ? AND fecha_termino >= ?))
+            """, (id_reporte, fecha_fin_mes_str, fecha_inicio_mes_str))
             sanciones = cur.fetchall()
 
             cur.execute("SELECT id_empleado, fechas_detalle FROM reporte_inasistencias WHERE id_reporte = ?", (id_reporte,))
@@ -132,19 +148,18 @@ class CompensacionService:
                     desplazamientos_por_emp[e_id] = []
                 desplazamientos_por_emp[e_id].append(dict(dp))
 
-            # Mapear novedades por empleado y día
+            # Mapear novedades por empleado y fecha (date) para soportar todo el año y días previos de semana
             novedades_map = {p["id_empleado"]: {} for p in personal}
 
             for lic in licencias:
                 emp_id = lic["id_empleado"]
                 if emp_id in novedades_map and lic["fecha_inicio"] and lic["fecha_termino"]:
                     try:
-                        f_ini = max(date(anio, mes, 1), datetime.strptime(lic["fecha_inicio"], "%Y-%m-%d").date())
-                        f_fin = min(date(anio, mes, num_dias), datetime.strptime(lic["fecha_termino"], "%Y-%m-%d").date())
+                        f_ini = datetime.strptime(lic["fecha_inicio"], "%Y-%m-%d").date()
+                        f_fin = datetime.strptime(lic["fecha_termino"], "%Y-%m-%d").date()
                         curr = f_ini
                         while curr <= f_fin:
-                            if curr.month == mes and curr.year == anio:
-                                novedades_map[emp_id][curr.day] = "L"
+                            novedades_map[emp_id][curr] = "L"
                             curr += timedelta(days=1)
                     except Exception:
                         pass
@@ -153,12 +168,11 @@ class CompensacionService:
                 emp_id = vac["id_empleado"]
                 if emp_id in novedades_map and vac["fecha_inicio"] and vac["fecha_termino"]:
                     try:
-                        f_ini = max(date(anio, mes, 1), datetime.strptime(vac["fecha_inicio"], "%Y-%m-%d").date())
-                        f_fin = min(date(anio, mes, num_dias), datetime.strptime(vac["fecha_termino"], "%Y-%m-%d").date())
+                        f_ini = datetime.strptime(vac["fecha_inicio"], "%Y-%m-%d").date()
+                        f_fin = datetime.strptime(vac["fecha_termino"], "%Y-%m-%d").date()
                         curr = f_ini
                         while curr <= f_fin:
-                            if curr.month == mes and curr.year == anio:
-                                novedades_map[emp_id][curr.day] = "V"
+                            novedades_map[emp_id][curr] = "V"
                             curr += timedelta(days=1)
                     except Exception:
                         pass
@@ -167,12 +181,11 @@ class CompensacionService:
                 emp_id = sanc["id_empleado"]
                 if emp_id in novedades_map and sanc["fecha_inicio"] and sanc["fecha_termino"]:
                     try:
-                        f_ini = max(date(anio, mes, 1), datetime.strptime(sanc["fecha_inicio"], "%Y-%m-%d").date())
-                        f_fin = min(date(anio, mes, num_dias), datetime.strptime(sanc["fecha_termino"], "%Y-%m-%d").date())
+                        f_ini = datetime.strptime(sanc["fecha_inicio"], "%Y-%m-%d").date()
+                        f_fin = datetime.strptime(sanc["fecha_termino"], "%Y-%m-%d").date()
                         curr = f_ini
                         while curr <= f_fin:
-                            if curr.month == mes and curr.year == anio:
-                                novedades_map[emp_id][curr.day] = "S"
+                            novedades_map[emp_id][curr] = "S"
                             curr += timedelta(days=1)
                     except Exception:
                         pass
@@ -186,7 +199,7 @@ class CompensacionService:
                         if pt.isdigit():
                             d_num = int(pt)
                             if 1 <= d_num <= num_dias:
-                                novedades_map[emp_id][d_num] = "I"
+                                novedades_map[emp_id][date(anio, mes, d_num)] = "I"
 
             for comp in compensaciones_gozadas:
                 emp_id = comp["id_empleado"]
@@ -195,17 +208,16 @@ class CompensacionService:
                     if comp["fecha_compensacion"]:
                         try:
                             d_obj = datetime.strptime(comp["fecha_compensacion"], "%Y-%m-%d").date()
-                            if d_obj.year == anio and d_obj.month == mes:
-                                novedades_map[emp_id][d_obj.day] = "C"
+                            novedades_map[emp_id][d_obj] = "C"
                         except Exception:
                             pass
                     # fechas detalle si eran múltiples
-                    if comp.get("fechas_compensacion_detalle"):
-                        for f_str in comp["fechas_compensacion_detalle"].split(","):
+                    fechas_det = comp["fechas_compensacion_detalle"] if "fechas_compensacion_detalle" in comp.keys() else None
+                    if fechas_det:
+                        for f_str in fechas_det.split(","):
                             try:
                                 d_obj = datetime.strptime(f_str.strip(), "%Y-%m-%d").date()
-                                if d_obj.year == anio and d_obj.month == mes:
-                                    novedades_map[emp_id][d_obj.day] = "C"
+                                novedades_map[emp_id][d_obj] = "C"
                             except Exception:
                                 pass
 
@@ -337,9 +349,9 @@ class CompensacionService:
                         except Exception:
                             pass
 
-                    # 1. Novedades registradas si es del mes actual (licencia, vacaciones, etc.)
-                    if f_obj.year == anio and f_obj.month == mes and f_obj.day in novedades_map.get(emp_id, {}):
-                        return novedades_map[emp_id][f_obj.day]
+                    # 1. Novedades registradas (licencia, vacaciones, sanción, etc.) en cualquier fecha del año
+                    if f_obj in novedades_map.get(emp_id, {}):
+                        return novedades_map[emp_id][f_obj]
 
                     # 2. Rotaciones aplicables a esta fecha respetando estrictamente la historia previa
                     g_activo = g_base_id
