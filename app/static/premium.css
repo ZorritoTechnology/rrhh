@@ -1,14 +1,28 @@
 :root {
-    --primary: #6366f1;
-    --primary-hover: #4f46e5;
-    --secondary: #10b981;
-    --bg-dark: #0f172a;
-    --bg-panel: rgba(30, 41, 59, 0.7);
+    /* Paleta Institucional INPE (Dorado Oficial, Verde Laurel, Rojo Escarapela, Fondo Táctico/Penitenciario) */
+    --inpe-gold: #fbbf24;
+    --inpe-gold-hover: #f59e0b;
+    --inpe-gold-dark: #b45309;
+    --inpe-green: #15803d;
+    --inpe-green-light: #22c55e;
+    --inpe-red: #dc2626;
+    --inpe-red-light: #ef4444;
+
+    /* Tema de la Aplicación */
+    --primary: #fbbf24;
+    --primary-hover: #f59e0b;
+    --secondary: #22c55e;
+    --bg-dark: #0a0e14;
+    --bg-darker: #06090d;
+    --bg-panel: rgba(17, 24, 39, 0.75);
+    --bg-panel-solid: #111827;
+    --bg-card: rgba(22, 30, 46, 0.65);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
-    --border-color: rgba(255, 255, 255, 0.1);
+    --border-color: rgba(251, 191, 36, 0.16);
+    --border-subtle: rgba(255, 255, 255, 0.08);
     --danger: #ef4444;
-    --warning: #f59e0b;
+    --warning: #fbbf24;
 }
 
 * {
@@ -19,7 +33,7 @@
 }
 
 body {
-    background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+    background: radial-gradient(circle at top right, #1a2216 0%, #0c141c 45%, #06090e 100%);
     color: var(--text-main);
     min-height: 100vh;
     display: flex;
@@ -49,21 +63,25 @@ body {
 
 .brand i {
     font-size: 2rem;
-    background: linear-gradient(135deg, var(--secondary), #34d399);
+    background: linear-gradient(135deg, var(--inpe-gold), #fef08a);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 6px rgba(251, 191, 36, 0.3));
 }
 
 .brand-text h1 {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1.2rem;
+    font-weight: 800;
     letter-spacing: 0.5px;
+    color: #fff;
 }
 
 .brand-text p {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--inpe-gold);
+    font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
 .nav-menu {
@@ -75,29 +93,38 @@ body {
 .nav-item {
     text-decoration: none;
     color: var(--text-muted);
-    padding: 0.875rem 1rem;
+    padding: 0.8rem 1rem;
     border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 1rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     font-weight: 500;
+    border: 1px solid transparent;
 }
 
 .nav-item i {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     width: 24px;
     text-align: center;
 }
 
-.nav-item:hover, .nav-item.active {
-    background: rgba(99, 102, 241, 0.15);
+.nav-item:hover {
+    background: rgba(251, 191, 36, 0.08);
     color: #fff;
+    border-color: rgba(251, 191, 36, 0.2);
     transform: translateX(4px);
 }
 
+.nav-item.active {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.16), rgba(21, 128, 61, 0.12));
+    color: #fff;
+    border-color: rgba(251, 191, 36, 0.35);
+    font-weight: 700;
+}
+
 .nav-item.active i {
-    color: var(--primary);
+    color: var(--inpe-gold);
 }
 
 /* Main Content */
@@ -173,7 +200,7 @@ body {
     content: '';
     position: absolute;
     top: 0; left: 0; width: 100%; height: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background: linear-gradient(90deg, var(--inpe-gold), var(--inpe-green-light));
 }
 
 .stat-title {
@@ -204,7 +231,7 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 20px;
     padding: 2rem;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 .table-header {
@@ -228,11 +255,11 @@ body {
 .data-table th {
     text-align: left;
     padding: 0 1rem 0.5rem;
-    color: var(--text-muted);
+    color: var(--inpe-gold);
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .data-table td {
@@ -241,36 +268,43 @@ body {
     color: #e2e8f0;
     font-size: 0.95rem;
     transition: background 0.2s;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .data-table tr td:first-child {
     border-top-left-radius: 12px;
     border-bottom-left-radius: 12px;
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .data-table tr td:last-child {
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
+    border-right: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .data-table tr:hover td {
-    background: rgba(255,255,255,0.06);
+    background: rgba(251, 191, 36, 0.04);
 }
 
 .badge {
     padding: 0.35rem 0.75rem;
     border-radius: 999px;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
-.badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-.badge-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-.badge-neutral { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
-.badge-info { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.35); }
+.badge-success { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+.badge-warning { background: rgba(251, 191, 36, 0.18); color: #fde047; border: 1px solid rgba(251, 191, 36, 0.3); }
+.badge-danger { background: rgba(239, 68, 68, 0.18); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-neutral { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.25); }
+.badge-info { background: rgba(251, 191, 36, 0.15); color: #fde047; border: 1px solid rgba(251, 191, 36, 0.35); }
 
 /* Utility Text Colors */
 .text-danger { color: var(--danger) !important; }

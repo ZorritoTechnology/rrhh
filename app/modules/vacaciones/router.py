@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.modules.vacaciones.service import VacacionesService
 
 router = APIRouter(prefix="/vacaciones", tags=["Vacaciones"])
 templates = Jinja2Templates(directory="app/templates")
+
+@router.get("", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
+async def inicio_vacaciones():
+    return RedirectResponse(url="/vacaciones/saldos", status_code=302)
 
 @router.get("/saldos", response_class=HTMLResponse)
 async def ver_saldos(request: Request):
